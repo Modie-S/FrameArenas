@@ -4,10 +4,12 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "FrameMultiplayer/Types/TurnInPlace.h"
+#include "FrameMultiplayer/Interfaces/CrosshairInteractInterface.h"
 #include "FrameCharacter.generated.h"
 
 UCLASS()
-class FRAMEMULTIPLAYER_API AFrameCharacter : public ACharacter
+class FRAMEMULTIPLAYER_API AFrameCharacter : public ACharacter, public ICrosshairInteractInterface
 {
 	GENERATED_BODY()
 
@@ -25,6 +27,8 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	virtual void PostInitializeComponents() override;
+	
+	void PlayFireMontage(bool bAiming);
 
 protected:
 	
@@ -39,7 +43,9 @@ protected:
 	void CrouchButtonPressed();
 	void AimButtonPressed();
 	void AimButtonReleased();
-
+	void FireButtonPressed();
+	void FireButtonReleased();
+	
 private:
 
 	UPROPERTY(VisibleAnywhere, Category = Camera)
@@ -63,6 +69,16 @@ private:
 	UFUNCTION(Server, Reliable)
 	void ServerEquipButtonPressed();
 
+	UPROPERTY(EditAnywhere, Category = Combat)
+	class UAnimMontage* FireWeaponMontage;
+
+	void HideCameraIfCharacterClose();
+
+	UPROPERTY(EditAnywhere)
+	float CameraThreshold = 200.f;
+
+	
+
 
 public:
 
@@ -70,4 +86,9 @@ public:
 	void SetOverlappingWeapon(AWeapon* Weapon);
 	bool IsWeaponEquipped();
 	bool IsAiming();
+	AWeapon* GetEquippedWeapon();
+	FVector GetHitTarget() const;
+	FORCEINLINE UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+	
 };
+

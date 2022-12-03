@@ -9,6 +9,9 @@
 #include "Net/UnrealNetwork.h"
 #include "FrameMultiplayer/Weapon/Weapon.h"
 #include "FrameMultiplayer/Components/CombatComponent.h"
+#include "Components/CapsuleComponent.h"
+#include "FrameAnimInstance.h"
+
 
 // Sets default values
 AFrameCharacter::AFrameCharacter()
@@ -35,6 +38,12 @@ AFrameCharacter::AFrameCharacter()
 	Combat->SetIsReplicated(true);
 
 	GetCharacterMovement()->NavAgentProps.bCanCrouch = true;
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
+	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
+	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Block);
+	
+	NetUpdateFrequency = 66.f;
+	MinNetUpdateFrequency = 33.f;
 }
 
 
@@ -58,6 +67,7 @@ void AFrameCharacter::BeginPlay()
 void AFrameCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	HideCameraIfCharacterClose();
 
 
 }
@@ -81,6 +91,8 @@ void AFrameCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComp
 	PlayerInputComponent->BindAction("Crouch", IE_Pressed, this, &AFrameCharacter::CrouchButtonPressed);
 	PlayerInputComponent->BindAction("Aim", IE_Pressed, this, &AFrameCharacter::AimButtonPressed);
 	PlayerInputComponent->BindAction("Aim", IE_Released, this, &AFrameCharacter::AimButtonReleased);
+	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AFrameCharacter::FireButtonPressed);
+	PlayerInputComponent->BindAction("Fire", IE_Released, this, &AFrameCharacter::FireButtonReleased);
 }
 
 
@@ -141,7 +153,6 @@ void AFrameCharacter::EquipButtonPressed()
 		{
 			ServerEquipButtonPressed();
 		}
-		
 	}
 }
 
@@ -165,7 +176,6 @@ void AFrameCharacter::CrouchButtonPressed()
 	{
 		Crouch();
 	}
-	
 }
 
 void AFrameCharacter::AimButtonPressed()
@@ -181,6 +191,36 @@ void AFrameCharacter::AimButtonReleased()
 	if (Combat)
 	{
 		Combat->SetAiming(false);
+	}
+}
+
+void AFrameCharacter::FireButtonPressed()
+{
+	if (Combat)
+	{
+		Combat->FireButtonPressed(true);
+	}
+}
+
+void AFrameCharacter::FireButtonReleased()
+{
+	if (Combat)
+	{
+		Combat->FireButtonPressed(false);
+	}
+}
+
+void AFrameCharacter::PlayFireMontage(bool bAiming)
+{
+	if (Combat == nullptr || Combat->EquippedWeapon == nullptr) return;
+
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance && FireWeaponMontage)
+	{
+		AnimInstance->Montage_Play(FireWeaponMontage);
+		FName SectionName;
+		SectionName = bAiming ? FName("RifleFire") : FName("RifleFire");
+		AnimInstance->Montage_JumpToSection(SectionName);
 	}
 }
 
@@ -216,6 +256,27 @@ void AFrameCharacter::OnRep_OverlappingWeapon(AWeapon* LastWeapon)
 	}
 }
 
+void AFrameCharacter::HideCameraIfCharacterClose()
+{
+	if (!IsLocallyControlled()) return;
+	if ((FollowCamera->GetComponentLocation() - GetActorLocation()).Size() < CameraThreshold)
+	{
+		GetMesh()->SetVisibility(false);
+		if (Combat && Combat->EquippedWeapon && Combat->EquippedWeapon->GetWeaponMesh())
+		{
+			Combat->EquippedWeapon->GetWeaponMesh()->bOwnerNoSee = true;
+		}
+	}
+	else
+	{
+		GetMesh()->SetVisibility(true);
+		if (Combat && Combat->EquippedWeapon && Combat->EquippedWeapon->GetWeaponMesh())
+		{
+			Combat->EquippedWeapon->GetWeaponMesh()->bOwnerNoSee = false;
+		}
+	}
+}
+
 
 bool AFrameCharacter::IsWeaponEquipped()
 {
@@ -225,6 +286,18 @@ bool AFrameCharacter::IsWeaponEquipped()
 bool AFrameCharacter::IsAiming()
 {
 	return (Combat && Combat->bAiming);
+}
+
+AWeapon* AFrameCharacter::GetEquippedWeapon()
+{
+	if (Combat == nullptr) return nullptr;
+	return Combat->EquippedWeapon;
+}
+
+FVector AFrameCharacter::GetHitTarget() const
+{
+	if (Combat == nullptr) return FVector();
+	return Combat->HitTarget;
 }
 
 

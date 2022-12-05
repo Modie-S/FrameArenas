@@ -5,6 +5,7 @@
 #include "FrameCharacter.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "FrameMultiplayer/Weapon/Weapon.h"
 
 
 void UFrameAnimInstance::NativeInitializeAnimation()
@@ -32,8 +33,10 @@ void UFrameAnimInstance::NativeUpdateAnimation(float DeltaTime)
     bIsInAir = FrameCharacter->GetCharacterMovement()->IsFalling();
     bIsAccelerating = FrameCharacter->GetCharacterMovement()->GetCurrentAcceleration().Size() > 0.f ? true : false;
     bWeaponEquipped = FrameCharacter->IsWeaponEquipped();
+    EquippedWeapon = FrameCharacter->GetEquippedWeapon();
     bIsCrouched = FrameCharacter->bIsCrouched;
     bAiming = FrameCharacter->IsAiming();
+   
 
     FRotator AimRotation = FrameCharacter->GetBaseAimRotation();
     FRotator MovementRotation = UKismetMathLibrary::MakeRotFromX(FrameCharacter->GetVelocity());
@@ -47,5 +50,27 @@ void UFrameAnimInstance::NativeUpdateAnimation(float DeltaTime)
     const float Target = Delta.Yaw / DeltaTime;
     const float Interp = FMath::FInterpTo(Lean, Target, DeltaTime, 6.f);
     Lean = FMath::Clamp(Interp, -90.f, 90.f);
+
+    if (bWeaponEquipped && EquippedWeapon && EquippedWeapon->GetWeaponMesh() && FrameCharacter->GetMesh())
+    {
+        LeftHandTransform = EquippedWeapon->GetWeaponMesh()->GetSocketTransform(FName("LeftHandSocket"), ERelativeTransformSpace::RTS_World);
+        FVector OutPosition;
+        FRotator OutRotation;
+        FrameCharacter->GetMesh()->TransformToBoneSpace(FName("hand_r"), LeftHandTransform.GetLocation(), FRotator::ZeroRotator, OutPosition, OutRotation);
+        LeftHandTransform.SetLocation(OutPosition);
+        LeftHandTransform.SetRotation(FQuat(OutRotation));
+
+        if (FrameCharacter->IsLocallyControlled())
+        {
+            bLocallyControlled = true;
+            FTransform RightHandTransform = EquippedWeapon->GetWeaponMesh()->GetSocketTransform(FName("hand_r"), ERelativeTransformSpace::RTS_World);
+            FRotator LookAtRotation = UKismetMathLibrary::FindLookAtRotation(RightHandTransform.GetLocation(), RightHandTransform.GetLocation() + (RightHandTransform.GetLocation() - FrameCharacter->GetHitTarget()));
+            RightHandRotation = FMath::RInterpTo(RightHandRotation, LookAtRotation, DeltaTime, 30.f);
+        }
+        
+       
+        
+        
+    }
     
 }    

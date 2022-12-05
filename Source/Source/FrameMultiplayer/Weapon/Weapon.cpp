@@ -6,6 +6,10 @@
 #include "Components/WidgetComponent.h"
 #include "FrameMultiplayer/Character/FrameCharacter.h"
 #include "Net/UnrealNetwork.h"
+#include "Animation/AnimationAsset.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Casing.h"
+#include "Engine/SkeletalMeshSocket.h"
 
 // Sets default values
 AWeapon::AWeapon()
@@ -99,7 +103,6 @@ void AWeapon::SetWeaponState(EWeaponState State)
 			AreaSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 			break;
 	}
-	
 }
 
 
@@ -121,6 +124,35 @@ void AWeapon::ShowPickupWidget(bool bShowWidget)
 		PickupWidget->SetVisibility(bShowWidget);
 	}
 }
+
+void AWeapon::Fire(const FVector& HitTarget)
+{
+	if (FireAnimation)
+	{
+		WeaponMesh->PlayAnimation(FireAnimation, false);
+	}
+
+	if (CasingClass)
+	{
+		const USkeletalMeshSocket* AmmoEjectSocket = WeaponMesh->GetSocketByName(FName("BulletShell_Socket"));
+		if (AmmoEjectSocket)
+		{
+			FTransform SocketTransform = AmmoEjectSocket->GetSocketTransform(WeaponMesh);
+			
+			UWorld* World = GetWorld();
+			if (World)
+			{
+				World->SpawnActor<ACasing>(
+					CasingClass,
+					SocketTransform.GetLocation(),
+					SocketTransform.GetRotation().Rotator()
+					);
+			}
+		}
+	}
+}
+
+
 
 
 

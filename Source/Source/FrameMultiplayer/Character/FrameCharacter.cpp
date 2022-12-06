@@ -13,6 +13,12 @@
 #include "FrameAnimInstance.h"
 #include "FrameMultiplayer/FrameMultiplayer.h"
 #include "FrameMultiplayer/PlayerController/FramePlayerController.h"
+#include "FrameMultiplayer/GameMode/FrameGameMode.h"
+#include "TimerManager.h"
+#include "Kismet/GameplayStatics.h"
+#include "Sound/SoundCue.h"
+#include "Particles/ParticleSystemComponent.h"
+#include "FrameMultiplayer/PlayerState/FramePlayerState.h"
 
 
 // Sets default values
@@ -47,6 +53,8 @@ AFrameCharacter::AFrameCharacter()
 	
 	NetUpdateFrequency = 66.f;
 	MinNetUpdateFrequency = 33.f;
+
+	DissolveTimeline = CreateDefaultSubobject<UTimelineComponent>(TEXT("DissolveTimelineComponent"));
 }
 
 
@@ -77,6 +85,7 @@ void AFrameCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	HideCameraIfCharacterClose();
+	PollInit();
 }
 
 
@@ -231,6 +240,16 @@ void AFrameCharacter::PlayFireMontage(bool bAiming)
 	}
 }
 
+
+void AFrameCharacter::PlayElimMontage()
+{
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance && ElimMontage)
+	{
+		AnimInstance->Montage_Play(ElimMontage);
+	}
+}
+
 void AFrameCharacter::PlayHitReactMontage()
 {
 	if (Combat == nullptr || Combat->EquippedWeapon == nullptr) return;
@@ -251,6 +270,18 @@ void AFrameCharacter::ReceiveDamage(AActor* DamagedActor, float Damage, const UD
 	Health = FMath::Clamp(Health - Damage, 0.f, MaxHealth);
 	UpdateHUDHealth();
 	PlayHitReactMontage();
+
+	if (Health == 0.f)
+	{
+		AFrameGameMode* FrameGameMode = GetWorld()->GetAuthGameMode<AFrameGameMode>();
+		if (FrameGameMode)
+		{
+			FramePlayerController = FramePlayerController == nullptr ? Cast<AFramePlayerController>(Controller) : FramePlayerController;
+			AFramePlayerController* AttackerController = Cast<AFramePlayerController>(InstigatorController);
+			FrameGameMode->PlayerEliminated(this, FramePlayerController, AttackerController);
+		}
+	}
+	
 }
 
 
@@ -267,6 +298,126 @@ void AFrameCharacter::UpdateHUDHealth()
 	if (FramePlayerController)
 	{
 		FramePlayerController->SetHUDHealth(Health, MaxHealth);
+	}
+}
+
+
+void AFrameCharacter::PollInit()
+{
+	if (FramePlayerState == nullptr)
+	{
+		FramePlayerState = GetPlayerState<AFramePlayerState>();
+		if (FramePlayerState)
+		{
+			FramePlayerState->AddToScore(0.f);
+			FramePlayerState->AddToElims(0);
+		}
+	}
+}
+
+void AFrameCharacter::Elim()
+{
+	if (Combat && Combat->EquippedWeapon)
+	{
+		Combat->EquippedWeapon->Dropped();
+	}
+	MulticastElim();
+	GetWorldTimerManager().SetTimer(
+		ElimTimer,
+		this, 
+		&AFrameCharacter::ElimTimerFinished,
+		ElimDelay
+	);
+}
+
+
+void AFrameCharacter::MulticastElim_Implementation()
+{
+	bElimmed = true;
+	PlayElimMontage();
+
+	// Starting dissolve effect 
+	if (DissolveMaterialInstance)
+	{
+		DynamicDissolveMaterialInstance = UMaterialInstanceDynamic::Create(DissolveMaterialInstance, this);
+		GetMesh()->SetMaterial(0, DynamicDissolveMaterialInstance);
+		DynamicDissolveMaterialInstance->SetScalarParameterValue(TEXT("Dissolve"), 0.55f);
+		DynamicDissolveMaterialInstance->SetScalarParameterValue(TEXT("Glow"), 200.f);
+	}
+	StartDissolve();
+
+	// Disabling character movement/player input
+	GetCharacterMovement()->DisableMovement();
+	GetCharacterMovement()->StopMovementImmediately();
+	if (FramePlayerController)
+	{
+		DisableInput(FramePlayerController);
+	}
+
+	// Disabling collision
+	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+	// Spawn Elim Drone
+	if (ElimDroneEffect)
+	{
+		FVector ElimDroneSpawnPoint(GetActorLocation().X, GetActorLocation().Y, GetActorLocation().Z + 200.f);
+		ElimDroneComponent = UGameplayStatics::SpawnEmitterAtLocation(
+				GetWorld(), 
+				ElimDroneEffect,
+				ElimDroneSpawnPoint,
+				GetActorRotation()
+				);
+	}
+
+	if (ElimDroneSound)
+	{
+		UGameplayStatics::SpawnSoundAtLocation(
+			this,
+			ElimDroneSound,
+			GetActorLocation()
+			);
+	}
+}
+
+
+void AFrameCharacter::Destroyed()
+{
+	Super::Destroyed();
+
+	if (ElimDroneComponent)
+	{
+		ElimDroneComponent->DestroyComponent();
+	}
+}
+
+
+void AFrameCharacter::ElimTimerFinished()
+{
+	AFrameGameMode* FrameGameMode = GetWorld()->GetAuthGameMode<AFrameGameMode>();
+	if (FrameGameMode)
+	{
+		FrameGameMode->RequestRespawn(this, Controller);
+	}
+}
+
+
+void AFrameCharacter::UpdateDissolveMaterial(float DissolveValue)
+{
+	if (DynamicDissolveMaterialInstance)
+	{
+		DynamicDissolveMaterialInstance->SetScalarParameterValue(TEXT("Dissolve"), DissolveValue);
+	}
+}
+
+
+void AFrameCharacter::StartDissolve()
+{
+	DissolveTrack.BindDynamic(this, &AFrameCharacter::UpdateDissolveMaterial);
+	if (DissolveCurve && DissolveTimeline)
+	{
+		DissolveTimeline->AddInterpFloat(DissolveCurve, DissolveTrack);
+		DissolveTimeline->Play();
 	}
 }
 

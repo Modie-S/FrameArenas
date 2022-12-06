@@ -47,8 +47,13 @@ protected:
 
 private:
 
+	UPROPERTY()
 	class AFrameCharacter* Character;
+
+	UPROPERTY()
 	class AFramePlayerController* Controller;
+	
+	UPROPERTY()
 	class AFrameHUD* HUD;
 
 	UPROPERTY(Replicated)

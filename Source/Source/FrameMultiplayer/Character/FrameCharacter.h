@@ -6,6 +6,7 @@
 #include "GameFramework/Character.h"
 #include "FrameMultiplayer/Types/TurnInPlace.h"
 #include "FrameMultiplayer/Interfaces/CrosshairInteractInterface.h"
+#include "Components/TimelineComponent.h"
 #include "FrameCharacter.generated.h"
 
 UCLASS()
@@ -23,12 +24,14 @@ public:
 
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
-
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-
 	virtual void PostInitializeComponents() override;
-	
 	void PlayFireMontage(bool bAiming);
+	void PlayElimMontage();
+	void Elim();
+	
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastElim();
 
 protected:
 	
@@ -50,6 +53,10 @@ protected:
 	UFUNCTION()
 	void ReceiveDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType, class AController* InstigatorController, AActor* DamageCauser);
 	void UpdateHUDHealth();
+	// Poll for relevant classes and initialize HUD
+	void PollInit();
+
+	virtual void Destroyed() override;
 
 private:
 
@@ -80,6 +87,9 @@ private:
 	UPROPERTY(EditAnywhere, Category = Combat)
 	UAnimMontage* HitReactMontage;
 
+	UPROPERTY(EditAnywhere, Category = Combat)
+	UAnimMontage* ElimMontage;
+
 	void HideCameraIfCharacterClose();
 
 	UPROPERTY(EditAnywhere)
@@ -98,8 +108,57 @@ private:
 	UFUNCTION()
 	void OnRep_Health();
 
+	UPROPERTY()
 	class AFramePlayerController* FramePlayerController;
 
+	bool bElimmed = false;
+
+	FTimerHandle ElimTimer;
+	
+	UPROPERTY(EditDefaultsOnly)
+	float ElimDelay = 3.f;
+	
+	void ElimTimerFinished();
+
+	//
+	// Dissolve FX
+	//
+
+	UPROPERTY(VisibleAnywhere)
+	UTimelineComponent* DissolveTimeline;
+
+	FOnTimelineFloat DissolveTrack;
+
+	UFUNCTION()
+	void UpdateDissolveMaterial(float DissolveValue);
+	void StartDissolve();
+
+	UPROPERTY(EditAnywhere)
+	UCurveFloat* DissolveCurve;
+
+	// Dynamic material that can change during runtime
+	UPROPERTY(VisibleAnywhere, Category = Elimination)
+	UMaterialInstanceDynamic* DynamicDissolveMaterialInstance;
+
+	// Material instance set on Blueprint - used with dynamic MI
+	UPROPERTY(EditAnywhere, Category = Elimination)
+	UMaterialInstance* DissolveMaterialInstance;
+
+	//
+	// Elim Drone
+	//
+
+	UPROPERTY(EditAnywhere)
+	UParticleSystem* ElimDroneEffect;
+
+	UPROPERTY(VisibleAnywhere)
+	UParticleSystemComponent* ElimDroneComponent;
+
+	UPROPERTY(EditAnywhere)
+	class USoundCue* ElimDroneSound;
+
+	UPROPERTY()
+	class AFramePlayerState* FramePlayerState;
 
 public:
 
@@ -110,6 +169,8 @@ public:
 	AWeapon* GetEquippedWeapon();
 	FVector GetHitTarget() const;
 	FORCEINLINE UCameraComponent* GetFollowCamera() const { return FollowCamera; }
-	
+	FORCEINLINE bool IsElimmed() const { return bElimmed; }
+	FORCEINLINE float GetHealth() const { return Health; }
+	FORCEINLINE float GetMaxHealth() const { return MaxHealth; }
 };
 

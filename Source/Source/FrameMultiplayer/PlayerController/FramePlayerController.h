@@ -17,6 +17,9 @@ class FRAMEMULTIPLAYER_API AFramePlayerController : public APlayerController
 public:
 
 	void SetHUDHealth(float Health, float MaxHealth);
+	void SetHUDScore(float Score);
+	void SetHUDElims(int32 Elims);
+	virtual void OnPossess(APawn* InPawn) override;
 	
 protected:
 
@@ -24,5 +27,6 @@ protected:
 
 private:
 
+	UPROPERTY()
 	class AFrameHUD* FrameHUD;
 };

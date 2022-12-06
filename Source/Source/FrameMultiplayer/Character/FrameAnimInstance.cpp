@@ -36,6 +36,7 @@ void UFrameAnimInstance::NativeUpdateAnimation(float DeltaTime)
     EquippedWeapon = FrameCharacter->GetEquippedWeapon();
     bIsCrouched = FrameCharacter->bIsCrouched;
     bAiming = FrameCharacter->IsAiming();
+    bElimmed = FrameCharacter->IsElimmed();
    
 
     FRotator AimRotation = FrameCharacter->GetBaseAimRotation();

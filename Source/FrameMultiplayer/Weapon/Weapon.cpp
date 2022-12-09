@@ -10,6 +10,7 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "Casing.h"
 #include "Engine/SkeletalMeshSocket.h"
+#include "FrameMultiplayer/PlayerController/FramePlayerController.h"
 
 // Sets default values
 AWeapon::AWeapon()
@@ -70,6 +71,7 @@ void AWeapon::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeP
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(AWeapon, WeaponState);
+	DOREPLIFETIME(AWeapon, Ammo);
 }
 
 
@@ -101,6 +103,18 @@ void AWeapon::SetWeaponState(EWeaponState State)
 		case EWeaponState::EWS_Equipped:
 			ShowPickupWidget(false);
 			AreaSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			WeaponMesh->SetSimulatePhysics(false);
+			WeaponMesh->SetEnableGravity(false);
+			WeaponMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			break;
+		case EWeaponState::EWS_Dropped:
+			if (HasAuthority())
+			{
+				AreaSphere->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+			}
+			WeaponMesh->SetSimulatePhysics(true);
+			WeaponMesh->SetEnableGravity(true);
+			WeaponMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 			break;
 	}
 }
@@ -112,6 +126,14 @@ void AWeapon::OnRep_WeaponState()
 	{
 		case EWeaponState::EWS_Equipped:
 			ShowPickupWidget(false);
+			WeaponMesh->SetSimulatePhysics(false);
+			WeaponMesh->SetEnableGravity(false);
+			WeaponMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			break;
+		case EWeaponState::EWS_Dropped:
+			WeaponMesh->SetSimulatePhysics(true);
+			WeaponMesh->SetEnableGravity(true);
+			WeaponMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 			break;
 	}
 }
@@ -150,9 +172,75 @@ void AWeapon::Fire(const FVector& HitTarget)
 			}
 		}
 	}
+	UseRound();
+}
+
+void AWeapon::Dropped()
+{
+	SetWeaponState(EWeaponState::EWS_Dropped);
+	FDetachmentTransformRules DetachRules(EDetachmentRule::KeepWorld, true);
+	WeaponMesh->DetachFromComponent(DetachRules);
+	SetOwner(nullptr);
+	FrameOwnerCharacter = nullptr;
+	FrameOwnerController = nullptr;
 }
 
 
+void AWeapon::AddAmmo(int32 AmmoAdded)
+{
+	Ammo = FMath::Clamp(Ammo - AmmoAdded, 0, MagCapacity);
+	SetHUDAmmo();
+}
+
+
+void AWeapon::SetHUDAmmo()
+{
+	FrameOwnerCharacter = FrameOwnerCharacter == nullptr ? Cast<AFrameCharacter>(GetOwner()) : FrameOwnerCharacter;
+	if (FrameOwnerCharacter)
+	{
+		FrameOwnerController = FrameOwnerController == nullptr ? Cast<AFramePlayerController>(FrameOwnerCharacter->Controller) : FrameOwnerController;
+		if (FrameOwnerController)
+		{
+			FrameOwnerController->SetHUDWeaponAmmo(Ammo);
+		}
+	}
+}
+
+
+void AWeapon::UseRound()
+{
+	Ammo = FMath::Clamp(Ammo - 1, 0, MagCapacity);
+	SetHUDAmmo();
+}
+
+
+void AWeapon::OnRep_Ammo()
+{
+	FrameOwnerCharacter = FrameOwnerCharacter == nullptr ? Cast<AFrameCharacter>(GetOwner()) : FrameOwnerCharacter;
+	SetHUDAmmo();
+}
+
+
+void AWeapon::OnRep_Owner()
+{
+	Super::OnRep_Owner();
+	if (Owner == nullptr)
+	{
+		FrameOwnerCharacter = nullptr;
+		FrameOwnerController = nullptr;
+	}
+	else
+	{
+		SetHUDAmmo();
+	}
+	
+}
+
+
+bool AWeapon::IsEmpty()
+{
+	return Ammo <= 0;
+}
 
 
 

@@ -1,10 +1,13 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// MaxiMod Games 2022
+// Modie Shakarchi
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "FrameMultiplayer/HUD/FrameHUD.h"
+#include "FrameMultiplayer/Weapon/WeaponTypes.h"
+#include "FrameMultiplayer/Types/CombatState.h"
 #include "CombatComponent.generated.h"
 
 #define TRACE_LENGTH 800000.f
@@ -22,6 +25,10 @@ public:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	void EquipWeapon(class AWeapon* WeaponToEquip);
+	void Reload();
+	
+	UFUNCTION(BlueprintCallable)
+	void FinishReloading();
 	
 protected:
 	// Called when the game starts
@@ -31,7 +38,12 @@ protected:
 	UFUNCTION(Server, Reliable)
 	void ServerSetAiming(bool bIsAiming);
 
+	UFUNCTION()
+	void OnRep_EquippedWeapon();
+
 	void FireButtonPressed(bool bPressed);
+
+	void Fire();
 
 	UFUNCTION(Server, Reliable)
 	void ServerFire(const FVector_NetQuantize& TraceHitTarget);
@@ -43,10 +55,24 @@ protected:
 
 	void SetHUDCrosshairs(float DeltaTime);
 
+	UFUNCTION(Server, Reliable)
+	void ServerReload();
+
+	void HandleReload();
+
+	int32 AmountToReload();
+
+	FText GetWeaponDisplayNameText() const;
+
 private:
 
+	UPROPERTY()
 	class AFrameCharacter* Character;
+
+	UPROPERTY()
 	class AFramePlayerController* Controller;
+	
+	UPROPERTY()
 	class AFrameHUD* HUD;
 
 	UPROPERTY(Replicated)
@@ -93,8 +119,40 @@ private:
 
 	void InterpFOV(float DeltaTime);
 
+	//
+	// Automatic firing
+	//
 
+	FTimerHandle FireTimer;
+	bool bCanFire = true;
 
+	void StartFireTimer();
+	void FireTimerFinished();
+
+	bool CanFire();
+
+	// Carried ammo for currently equipped weapon
+	UPROPERTY(ReplicatedUsing = OnRep_CarriedAmmo)
+	int32 CarriedAmmo;
+	
+	UFUNCTION()
+	void OnRep_CarriedAmmo();
+	
+	// Hash function therefore is not replicated and cannot be
+	TMap<EWeaponType, int32> CarriedAmmoMap; 
+
+	UPROPERTY(EditAnywhere)
+	int32 StartingARAmmo = 30;
+	
+	void InitializeCarriedAmmo();
+
+	UPROPERTY(ReplicatedUsing = OnRep_CombatState)
+	ECombatState CombatState = ECombatState::ECS_Unoccupied;
+
+	UFUNCTION()
+	void OnRep_CombatState();
+
+	void UpdateAmmoValues();
 
 public:	
 	

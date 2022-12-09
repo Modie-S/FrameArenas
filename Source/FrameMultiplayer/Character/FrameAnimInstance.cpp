@@ -1,4 +1,5 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// MaxiMod Games 2022
+// Modie Shakarchi
 
 
 #include "FrameAnimInstance.h"
@@ -6,6 +7,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "FrameMultiplayer/Weapon/Weapon.h"
+#include "FrameMultiplayer/Types/CombatState.h"
 
 
 void UFrameAnimInstance::NativeInitializeAnimation()
@@ -36,6 +38,7 @@ void UFrameAnimInstance::NativeUpdateAnimation(float DeltaTime)
     EquippedWeapon = FrameCharacter->GetEquippedWeapon();
     bIsCrouched = FrameCharacter->bIsCrouched;
     bAiming = FrameCharacter->IsAiming();
+    bElimmed = FrameCharacter->IsElimmed();
    
 
     FRotator AimRotation = FrameCharacter->GetBaseAimRotation();
@@ -67,10 +70,10 @@ void UFrameAnimInstance::NativeUpdateAnimation(float DeltaTime)
             FRotator LookAtRotation = UKismetMathLibrary::FindLookAtRotation(RightHandTransform.GetLocation(), RightHandTransform.GetLocation() + (RightHandTransform.GetLocation() - FrameCharacter->GetHitTarget()));
             RightHandRotation = FMath::RInterpTo(RightHandRotation, LookAtRotation, DeltaTime, 30.f);
         }
-        
-       
-        
-        
     }
+
+    bUseFABRIK = FrameCharacter->GetCombatState() != ECombatState::ECS_Reloading;
+    bUseAimOffsets = FrameCharacter->GetCombatState() != ECombatState::ECS_Reloading;
+    bTransformRightHand = FrameCharacter->GetCombatState() != ECombatState::ECS_Reloading;
     
 }    

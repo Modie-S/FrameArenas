@@ -1,4 +1,5 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// MaxiMod Games 2022
+// Modie Shakarchi
 
 
 #include "FrameCharacter.h"
@@ -11,6 +12,15 @@
 #include "FrameMultiplayer/Components/CombatComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "FrameAnimInstance.h"
+#include "FrameMultiplayer/FrameMultiplayer.h"
+#include "FrameMultiplayer/PlayerController/FramePlayerController.h"
+#include "FrameMultiplayer/GameMode/FrameGameMode.h"
+#include "TimerManager.h"
+#include "Kismet/GameplayStatics.h"
+#include "Sound/SoundCue.h"
+#include "Particles/ParticleSystemComponent.h"
+#include "FrameMultiplayer/PlayerState/FramePlayerState.h"
+#include "FrameMultiplayer/Weapon/WeaponTypes.h"
 
 
 // Sets default values
@@ -41,9 +51,12 @@ AFrameCharacter::AFrameCharacter()
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
 	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
 	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Block);
+	GetMesh()->SetCollisionObjectType(ECC_SkeletalMesh);
 	
 	NetUpdateFrequency = 66.f;
 	MinNetUpdateFrequency = 33.f;
+
+	DissolveTimeline = CreateDefaultSubobject<UTimelineComponent>(TEXT("DissolveTimelineComponent"));
 }
 
 
@@ -52,6 +65,7 @@ void AFrameCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME_CONDITION(AFrameCharacter, OverlappingWeapon, COND_OwnerOnly);
+	DOREPLIFETIME(AFrameCharacter, Health);
 }
 
 
@@ -59,7 +73,12 @@ void AFrameCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 void AFrameCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
+	UpdateHUDHealth();
+	if (HasAuthority())
+	{
+		OnTakeAnyDamage.AddDynamic(this, &AFrameCharacter::ReceiveDamage);
+	}
 }
 
 
@@ -68,8 +87,7 @@ void AFrameCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	HideCameraIfCharacterClose();
-
-
+	PollInit();
 }
 
 
@@ -93,6 +111,7 @@ void AFrameCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComp
 	PlayerInputComponent->BindAction("Aim", IE_Released, this, &AFrameCharacter::AimButtonReleased);
 	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AFrameCharacter::FireButtonPressed);
 	PlayerInputComponent->BindAction("Fire", IE_Released, this, &AFrameCharacter::FireButtonReleased);
+	PlayerInputComponent->BindAction("Reload", IE_Pressed, this, &AFrameCharacter::ReloadButtonPressed);
 }
 
 
@@ -178,6 +197,14 @@ void AFrameCharacter::CrouchButtonPressed()
 	}
 }
 
+void AFrameCharacter::ReloadButtonPressed()
+{
+	if (Combat)
+	{
+		Combat->Reload();
+	}
+}
+
 void AFrameCharacter::AimButtonPressed()
 {
 	if (Combat)
@@ -185,6 +212,7 @@ void AFrameCharacter::AimButtonPressed()
 		Combat->SetAiming(true);
 	}
 }
+
 
 void AFrameCharacter::AimButtonReleased()
 {
@@ -194,6 +222,7 @@ void AFrameCharacter::AimButtonReleased()
 	}
 }
 
+
 void AFrameCharacter::FireButtonPressed()
 {
 	if (Combat)
@@ -202,6 +231,7 @@ void AFrameCharacter::FireButtonPressed()
 	}
 }
 
+
 void AFrameCharacter::FireButtonReleased()
 {
 	if (Combat)
@@ -209,6 +239,7 @@ void AFrameCharacter::FireButtonReleased()
 		Combat->FireButtonPressed(false);
 	}
 }
+
 
 void AFrameCharacter::PlayFireMontage(bool bAiming)
 {
@@ -221,6 +252,217 @@ void AFrameCharacter::PlayFireMontage(bool bAiming)
 		FName SectionName;
 		SectionName = bAiming ? FName("RifleFire") : FName("RifleFire");
 		AnimInstance->Montage_JumpToSection(SectionName);
+	}
+}
+
+
+void AFrameCharacter::PlayReloadMontage()
+{
+	if (Combat == nullptr || Combat->EquippedWeapon == nullptr) return;
+
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance && ReloadMontage)
+	{
+		AnimInstance->Montage_Play(ReloadMontage);
+		FName SectionName;
+
+		switch (Combat->EquippedWeapon->GetWeaponType())
+		{
+			case EWeaponType::EWT_AssaultRifle:
+				SectionName = FName("RifleReload");
+				break;
+		}	
+
+
+		AnimInstance->Montage_JumpToSection(SectionName);
+	}
+}
+
+
+void AFrameCharacter::PlayElimMontage()
+{
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance && ElimMontage)
+	{
+		AnimInstance->Montage_Play(ElimMontage);
+	}
+}
+
+
+void AFrameCharacter::PlayHitReactMontage()
+{
+	if (Combat == nullptr || Combat->EquippedWeapon == nullptr) return;
+
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance && HitReactMontage)
+	{
+		AnimInstance->Montage_Play(HitReactMontage);
+		FName SectionName("HitFront");
+		
+		AnimInstance->Montage_JumpToSection(SectionName);
+	}
+}
+
+
+void AFrameCharacter::ReceiveDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType, class AController* InstigatorController, AActor* DamageCauser)
+{
+	Health = FMath::Clamp(Health - Damage, 0.f, MaxHealth);
+	UpdateHUDHealth();
+	PlayHitReactMontage();
+
+	if (Health == 0.f)
+	{
+		AFrameGameMode* FrameGameMode = GetWorld()->GetAuthGameMode<AFrameGameMode>();
+		if (FrameGameMode)
+		{
+			FramePlayerController = FramePlayerController == nullptr ? Cast<AFramePlayerController>(Controller) : FramePlayerController;
+			AFramePlayerController* AttackerController = Cast<AFramePlayerController>(InstigatorController);
+			FrameGameMode->PlayerEliminated(this, FramePlayerController, AttackerController);
+		}
+	}
+	
+}
+
+
+void AFrameCharacter::OnRep_Health()
+{
+	UpdateHUDHealth();
+	PlayHitReactMontage();
+}
+
+
+void AFrameCharacter::UpdateHUDHealth()
+{
+	FramePlayerController = FramePlayerController == nullptr ? Cast<AFramePlayerController>(Controller) : FramePlayerController;
+	if (FramePlayerController)
+	{
+		FramePlayerController->SetHUDHealth(Health, MaxHealth);
+	}
+}
+
+
+void AFrameCharacter::PollInit()
+{
+	if (FramePlayerState == nullptr)
+	{
+		FramePlayerState = GetPlayerState<AFramePlayerState>();
+		if (FramePlayerState)
+		{
+			FramePlayerState->AddToScore(0.f);
+			FramePlayerState->AddToElims(0);
+		}
+	}
+}
+
+void AFrameCharacter::Elim()
+{
+	if (Combat && Combat->EquippedWeapon)
+	{
+		Combat->EquippedWeapon->Dropped();
+	}
+	MulticastElim();
+	GetWorldTimerManager().SetTimer(
+		ElimTimer,
+		this, 
+		&AFrameCharacter::ElimTimerFinished,
+		ElimDelay
+	);
+}
+
+
+void AFrameCharacter::MulticastElim_Implementation()
+{
+	if (FramePlayerController)
+	{
+		FramePlayerController->SetHUDWeaponAmmo(0);
+		FramePlayerController->SetHUDWeaponType(FText::FromString(""));
+	}
+	
+	bElimmed = true;
+	PlayElimMontage();
+
+	// Starting dissolve effect 
+	if (DissolveMaterialInstance)
+	{
+		DynamicDissolveMaterialInstance = UMaterialInstanceDynamic::Create(DissolveMaterialInstance, this);
+		GetMesh()->SetMaterial(0, DynamicDissolveMaterialInstance);
+		DynamicDissolveMaterialInstance->SetScalarParameterValue(TEXT("Dissolve"), 0.55f);
+		DynamicDissolveMaterialInstance->SetScalarParameterValue(TEXT("Glow"), 200.f);
+	}
+	StartDissolve();
+
+	// Disabling character movement/player input
+	GetCharacterMovement()->DisableMovement();
+	GetCharacterMovement()->StopMovementImmediately();
+	if (FramePlayerController)
+	{
+		DisableInput(FramePlayerController);
+	}
+
+	// Disabling collision
+	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+	// Spawn Elim Drone
+	if (ElimDroneEffect)
+	{
+		FVector ElimDroneSpawnPoint(GetActorLocation().X, GetActorLocation().Y, GetActorLocation().Z + 200.f);
+		ElimDroneComponent = UGameplayStatics::SpawnEmitterAtLocation(
+				GetWorld(), 
+				ElimDroneEffect,
+				ElimDroneSpawnPoint,
+				GetActorRotation()
+				);
+	}
+
+	if (ElimDroneSound)
+	{
+		UGameplayStatics::SpawnSoundAtLocation(
+			this,
+			ElimDroneSound,
+			GetActorLocation()
+			);
+	}
+}
+
+
+void AFrameCharacter::Destroyed()
+{
+	Super::Destroyed();
+
+	if (ElimDroneComponent)
+	{
+		ElimDroneComponent->DestroyComponent();
+	}
+}
+
+
+void AFrameCharacter::ElimTimerFinished()
+{
+	AFrameGameMode* FrameGameMode = GetWorld()->GetAuthGameMode<AFrameGameMode>();
+	if (FrameGameMode)
+	{
+		FrameGameMode->RequestRespawn(this, Controller);
+	}
+}
+
+
+void AFrameCharacter::UpdateDissolveMaterial(float DissolveValue)
+{
+	if (DynamicDissolveMaterialInstance)
+	{
+		DynamicDissolveMaterialInstance->SetScalarParameterValue(TEXT("Dissolve"), DissolveValue);
+	}
+}
+
+
+void AFrameCharacter::StartDissolve()
+{
+	DissolveTrack.BindDynamic(this, &AFrameCharacter::UpdateDissolveMaterial);
+	if (DissolveCurve && DissolveTimeline)
+	{
+		DissolveTimeline->AddInterpFloat(DissolveCurve, DissolveTrack);
+		DissolveTimeline->Play();
 	}
 }
 
@@ -283,10 +525,12 @@ bool AFrameCharacter::IsWeaponEquipped()
 	return (Combat && Combat->EquippedWeapon);
 }
 
+
 bool AFrameCharacter::IsAiming()
 {
 	return (Combat && Combat->bAiming);
 }
+
 
 AWeapon* AFrameCharacter::GetEquippedWeapon()
 {
@@ -294,10 +538,17 @@ AWeapon* AFrameCharacter::GetEquippedWeapon()
 	return Combat->EquippedWeapon;
 }
 
+
 FVector AFrameCharacter::GetHitTarget() const
 {
 	if (Combat == nullptr) return FVector();
 	return Combat->HitTarget;
 }
 
+
+ECombatState AFrameCharacter::GetCombatState() const
+{
+	if (Combat == nullptr) return ECombatState::ECS_MAX;
+	return Combat->CombatState;
+}
 

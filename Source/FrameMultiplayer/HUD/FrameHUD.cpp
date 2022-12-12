@@ -4,13 +4,12 @@
 #include "FrameHUD.h"
 #include "GameFramework/PlayerController.h"
 #include "CharacterOverlay.h"
+#include "Announcement.h"
 
 
 void AFrameHUD::BeginPlay()
 {
     Super::BeginPlay();
-
-    AddCharacterOverlay();
 }
 
 
@@ -23,6 +22,17 @@ void AFrameHUD::AddCharacterOverlay()
         CharacterOverlay->AddToViewport();
     }
 
+}
+
+
+void AFrameHUD::AddAnnouncement()
+{
+    APlayerController* PlayerController = GetOwningPlayerController();
+    if (PlayerController && AnnouncementClass)
+    {
+        Announcement = CreateWidget<UAnnouncement>(PlayerController, AnnouncementClass);
+        Announcement->AddToViewport();
+    }
 }
 
 

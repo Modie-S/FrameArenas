@@ -1,4 +1,5 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// Modie Shakarchi
+// MaxiMod Games 2022
 
 
 #include "FrameGameMode.h"
@@ -7,6 +8,52 @@
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/PlayerStart.h"
 #include "FrameMultiplayer/PlayerState/FramePlayerState.h"
+
+
+AFrameGameMode::AFrameGameMode()
+{
+    bDelayedStart = true;
+}
+
+
+void AFrameGameMode::BeginPlay()
+{
+    Super::BeginPlay();
+
+    LevelStartingTime = GetWorld()->GetTimeSeconds();
+
+}
+
+
+void AFrameGameMode::Tick(float DeltaTime)
+{
+    Super::Tick(DeltaTime);
+
+    if (MatchState == MatchState::WaitingToStart)
+    {
+        CountdownTime = WarmUpTime - GetWorld()->GetTimeSeconds() + LevelStartingTime;
+        if (CountdownTime <= 0.f)
+        {
+            StartMatch();
+        }
+    }
+}
+
+
+void AFrameGameMode::OnMatchStateSet()
+{
+    Super::OnMatchStateSet();
+
+    for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+    {
+        AFramePlayerController* FramePlayer = Cast<AFramePlayerController>(*It);
+        if (FramePlayer)
+        {
+            FramePlayer->OnMatchStateSet(MatchState);
+        }
+    }
+}
+
 
 void AFrameGameMode::PlayerEliminated(class AFrameCharacter* ElimmedCharacter, class AFramePlayerController* VictimController, AFramePlayerController* AttackerController)
 {
@@ -47,3 +94,4 @@ void AFrameGameMode::RequestRespawn(ACharacter* ElimmedCharacter, AController* E
         RestartPlayerAtPlayerStart(ElimmedController, PlayerStarts[RespawnSelection]);
     }
 }
+

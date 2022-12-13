@@ -66,6 +66,7 @@ void AFrameCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 
 	DOREPLIFETIME_CONDITION(AFrameCharacter, OverlappingWeapon, COND_OwnerOnly);
 	DOREPLIFETIME(AFrameCharacter, Health);
+	DOREPLIFETIME(AFrameCharacter, bDisableGameplay);
 }
 
 
@@ -128,6 +129,7 @@ void AFrameCharacter::PostInitializeComponents()
 
 void AFrameCharacter::MoveForward(float Value)
 {
+	if (bDisableGameplay) return;
 	if (Controller != nullptr && Value != 0.f)
 	{
 		const FRotator YawRotation(0.f, Controller->GetControlRotation().Yaw, 0.f);
@@ -139,6 +141,7 @@ void AFrameCharacter::MoveForward(float Value)
 
 void AFrameCharacter::MoveRight(float Value)
 {
+	if (bDisableGameplay) return;
 	if (Controller != nullptr && Value != 0.f)
 	{
 		const FRotator YawRotation(0.f, Controller->GetControlRotation().Yaw, 0.f);
@@ -162,6 +165,7 @@ void AFrameCharacter::LookUp(float Value)
 
 void AFrameCharacter::EquipButtonPressed()
 {
+	if (bDisableGameplay) return;
 	if (Combat)
 	{
 		if (HasAuthority())
@@ -187,6 +191,7 @@ void AFrameCharacter::ServerEquipButtonPressed_Implementation()
 
 void AFrameCharacter::CrouchButtonPressed()
 {
+	if (bDisableGameplay) return;
 	if (bIsCrouched)
 	{
 		UnCrouch();
@@ -199,6 +204,7 @@ void AFrameCharacter::CrouchButtonPressed()
 
 void AFrameCharacter::ReloadButtonPressed()
 {
+	if (bDisableGameplay) return;
 	if (Combat)
 	{
 		Combat->Reload();
@@ -207,6 +213,7 @@ void AFrameCharacter::ReloadButtonPressed()
 
 void AFrameCharacter::AimButtonPressed()
 {
+	if (bDisableGameplay) return;
 	if (Combat)
 	{
 		Combat->SetAiming(true);
@@ -216,6 +223,7 @@ void AFrameCharacter::AimButtonPressed()
 
 void AFrameCharacter::AimButtonReleased()
 {
+	if (bDisableGameplay) return;
 	if (Combat)
 	{
 		Combat->SetAiming(false);
@@ -225,6 +233,7 @@ void AFrameCharacter::AimButtonReleased()
 
 void AFrameCharacter::FireButtonPressed()
 {
+	if (bDisableGameplay) return;
 	if (Combat)
 	{
 		Combat->FireButtonPressed(true);
@@ -234,6 +243,7 @@ void AFrameCharacter::FireButtonPressed()
 
 void AFrameCharacter::FireButtonReleased()
 {
+	if (bDisableGameplay) return;
 	if (Combat)
 	{
 		Combat->FireButtonPressed(false);
@@ -394,10 +404,7 @@ void AFrameCharacter::MulticastElim_Implementation()
 	// Disabling character movement/player input
 	GetCharacterMovement()->DisableMovement();
 	GetCharacterMovement()->StopMovementImmediately();
-	if (FramePlayerController)
-	{
-		DisableInput(FramePlayerController);
-	}
+	bDisableGameplay = true;
 
 	// Disabling collision
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -433,6 +440,10 @@ void AFrameCharacter::Destroyed()
 	if (ElimDroneComponent)
 	{
 		ElimDroneComponent->DestroyComponent();
+	}
+	if (Combat && Combat->EquippedWeapon)
+	{
+		Combat->EquippedWeapon->Destroy();
 	}
 }
 

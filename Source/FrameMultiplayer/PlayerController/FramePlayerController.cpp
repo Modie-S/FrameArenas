@@ -11,6 +11,7 @@
 #include "FrameMultiplayer/GameMode/FrameGameMode.h"
 #include "Kismet/GameplayStatics.h"
 #include "FrameMultiplayer/HUD/Announcement.h"
+#include "FrameMultiplayer/Components/CombatComponent.h"
 
 void AFramePlayerController::BeginPlay()
 {
@@ -57,9 +58,10 @@ void AFramePlayerController::ServerCheckMatchState_Implementation()
     {
         WarmUpTime = GameMode->WarmUpTime;
         MatchTime = GameMode->MatchTime;
+        CooldownTime = GameMode->CooldownTime;
         LevelStartingTime = GameMode->LevelStartingTime;
         MatchState = GameMode->GetMatchState();
-        ClientJoinMidgame(MatchState, WarmUpTime, MatchTime, LevelStartingTime);
+        ClientJoinMidgame(MatchState, WarmUpTime, MatchTime, CooldownTime,LevelStartingTime);
 
         if (FrameHUD && MatchState == MatchState::WaitingToStart)
         {
@@ -69,10 +71,11 @@ void AFramePlayerController::ServerCheckMatchState_Implementation()
 }
 
 
-void AFramePlayerController::ClientJoinMidgame_Implementation(FName StateOfMatch, float WarmUp, float Match, float StartingTime)
+void AFramePlayerController::ClientJoinMidgame_Implementation(FName StateOfMatch, float WarmUp, float Match, float Cooldown, float StartingTime)
 {
     WarmUpTime = WarmUp;
     MatchTime = Match;
+    CooldownTime = Cooldown;
     LevelStartingTime = StartingTime;
     MatchState = StateOfMatch;
     OnMatchStateSet(MatchState);
@@ -207,6 +210,11 @@ void AFramePlayerController::SetHUDMatchTime(float CountdownTime)
                 FrameHUD->CharacterOverlay->MatchTimeText;
     if (bHUDValid)
     {
+        if (CountdownTime < 0.f)
+        {
+            FrameHUD->CharacterOverlay->MatchTimeText->SetText(FText());
+            return;
+        }
         int32 Minutes = FMath::FloorToInt(CountdownTime / 60.f);
         int32 Seconds = CountdownTime - Minutes * 60;
 
@@ -223,6 +231,12 @@ void AFramePlayerController::SetHUDAnnouncementCountdown(float CountdownTime)
                 FrameHUD->Announcement->WarmUpTime;
     if (bHUDValid)
     {
+        if (CountdownTime < 0.f)
+        {
+            FrameHUD->Announcement->WarmUpTime->SetText(FText());
+            return;
+        }
+
         int32 Minutes = FMath::FloorToInt(CountdownTime / 60.f);
         int32 Seconds = CountdownTime - Minutes * 60;
 
@@ -237,12 +251,22 @@ void AFramePlayerController::SetHUDTime()
     float TimeLeft = 0.f;
     if (MatchState == MatchState::WaitingToStart) TimeLeft = WarmUpTime - GetServerTime() + LevelStartingTime;
     else if (MatchState == MatchState::InProgress) TimeLeft = WarmUpTime + MatchTime - GetServerTime() + LevelStartingTime;
-
+    else if (MatchState == MatchState::Cooldown) TimeLeft = CooldownTime + WarmUpTime + MatchTime - GetServerTime() + LevelStartingTime;
     
     uint32 SecondsLeft = FMath::CeilToInt(TimeLeft);
+
+    if (HasAuthority())
+    {
+        FrameGameMode = FrameGameMode == nullptr ? Cast<AFrameGameMode>(UGameplayStatics::GetGameMode(this)) : FrameGameMode;
+        if (FrameGameMode)
+        {
+            SecondsLeft = FMath::CeilToInt(FrameGameMode->GetCountdownTime() + LevelStartingTime);
+        }
+    }
+
     if (CountdownInt != SecondsLeft)
     {
-        if (MatchState == MatchState::WaitingToStart) 
+        if (MatchState == MatchState::WaitingToStart || MatchState == MatchState::Cooldown) 
         {
             SetHUDAnnouncementCountdown(TimeLeft);
         }
@@ -313,6 +337,11 @@ void AFramePlayerController::OnMatchStateSet(FName State)
     {
         HandleMatchHasStarted();
     }
+    else if (MatchState == MatchState::Cooldown)
+    {
+        HandleCooldown();
+    }
+    
 }
 
 
@@ -321,6 +350,10 @@ void AFramePlayerController::OnRep_MatchState()
     if (MatchState == MatchState::InProgress)
     {
         HandleMatchHasStarted();
+    }
+    else if (MatchState == MatchState::Cooldown)
+    {
+        HandleCooldown();
     }
 }
 
@@ -335,5 +368,32 @@ void AFramePlayerController::HandleMatchHasStarted()
             {
                 FrameHUD->Announcement->SetVisibility(ESlateVisibility::Hidden);
             }
+        }
+}
+
+
+void AFramePlayerController::HandleCooldown()
+{
+     FrameHUD = FrameHUD == nullptr ? Cast<AFrameHUD>(GetHUD()) : FrameHUD;
+        if (FrameHUD)
+        {
+            FrameHUD->CharacterOverlay->RemoveFromParent();
+            bool bHUDValid = FrameHUD->Announcement && 
+                FrameHUD->Announcement->AnnouncementText && 
+                FrameHUD->Announcement->InfoText;
+
+            if (bHUDValid)
+            {
+                FrameHUD->Announcement->SetVisibility(ESlateVisibility::Visible);
+                FString AnnouncementText("Next Round Starts In:");
+                FrameHUD->Announcement->AnnouncementText->SetText(FText::FromString(AnnouncementText));
+                FrameHUD->Announcement->InfoText->SetText(FText());
+            }
+        }
+        AFrameCharacter* FrameCharacter = Cast<AFrameCharacter>(GetPawn());
+        if (FrameCharacter && FrameCharacter->GetCombat())
+        {
+            FrameCharacter->bDisableGameplay = true;
+            FrameCharacter->GetCombat()->FireButtonPressed(false);
         }
 }

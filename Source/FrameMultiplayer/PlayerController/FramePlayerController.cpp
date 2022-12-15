@@ -12,6 +12,8 @@
 #include "Kismet/GameplayStatics.h"
 #include "FrameMultiplayer/HUD/Announcement.h"
 #include "FrameMultiplayer/Components/CombatComponent.h"
+#include "FrameMultiplayer/GameState/FrameGameState.h"
+#include "FrameMultiplayer/PlayerState/FramePlayerState.h"
 
 void AFramePlayerController::BeginPlay()
 {
@@ -387,7 +389,39 @@ void AFramePlayerController::HandleCooldown()
                 FrameHUD->Announcement->SetVisibility(ESlateVisibility::Visible);
                 FString AnnouncementText("Next Round Starts In:");
                 FrameHUD->Announcement->AnnouncementText->SetText(FText::FromString(AnnouncementText));
-                FrameHUD->Announcement->InfoText->SetText(FText());
+
+                AFrameGameState* FrameGameState = Cast<AFrameGameState>(UGameplayStatics::GetGameState(this));
+                AFramePlayerState* FramePlayerState = GetPlayerState<AFramePlayerState>();
+                if (FrameGameState && FramePlayerState)
+                {
+                    TArray<AFramePlayerState*> TopPlayers = FrameGameState->TopScoringPlayers;
+                    FString InfoTextString;
+                    if (TopPlayers.Num() == 0)
+                    {
+                        InfoTextString = FString("No Winners Here...");
+                    }
+                    else if (TopPlayers.Num() == 1 && TopPlayers[0] == FramePlayerState)
+                    {
+                        InfoTextString = FString("You Are The Winner!");
+                    }
+                    else if (TopPlayers.Num() == 1)
+                    {
+                        InfoTextString = FString::Printf(TEXT("Winner: \n%s"), *TopPlayers[0]->GetPlayerName());
+                    }
+                    else if (TopPlayers.Num() > 1)
+                    {
+                        InfoTextString = FString("Players Tied For The Win:\n");
+                        for (auto TiedPlayer : TopPlayers)
+                        {
+                            InfoTextString.Append(FString::Printf(TEXT("%s\n"), *TiedPlayer->GetPlayerName()));
+                        }
+                    }
+
+
+                    FrameHUD->Announcement->InfoText->SetText(FText::FromString(InfoTextString));
+                }
+
+               
             }
         }
         AFrameCharacter* FrameCharacter = Cast<AFrameCharacter>(GetPawn());

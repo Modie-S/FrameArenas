@@ -405,6 +405,10 @@ void AFrameCharacter::MulticastElim_Implementation()
 	GetCharacterMovement()->DisableMovement();
 	GetCharacterMovement()->StopMovementImmediately();
 	bDisableGameplay = true;
+	if (Combat)
+	{
+		Combat->FireButtonPressed(false);
+	}
 
 	// Disabling collision
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -441,7 +445,11 @@ void AFrameCharacter::Destroyed()
 	{
 		ElimDroneComponent->DestroyComponent();
 	}
-	if (Combat && Combat->EquippedWeapon)
+
+	AFrameGameMode* FrameGameMode = Cast<AFrameGameMode>(UGameplayStatics::GetGameMode(this));
+	bool bMatchNotInProgress = FrameGameMode && FrameGameMode->GetMatchState() != MatchState::InProgress;
+
+	if (Combat && Combat->EquippedWeapon && bMatchNotInProgress)
 	{
 		Combat->EquippedWeapon->Destroy();
 	}

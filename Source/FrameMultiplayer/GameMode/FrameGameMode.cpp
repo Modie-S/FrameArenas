@@ -8,6 +8,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/PlayerStart.h"
 #include "FrameMultiplayer/PlayerState/FramePlayerState.h"
+#include "FrameMultiplayer/GameState/FrameGameState.h"
 
 namespace MatchState
 {
@@ -81,9 +82,12 @@ void AFrameGameMode::PlayerEliminated(class AFrameCharacter* ElimmedCharacter, c
     AFramePlayerState* AttackerPlayerState = AttackerController ? Cast<AFramePlayerState>(AttackerController->PlayerState) : nullptr;
     AFramePlayerState* VictimPlayerState = VictimController ? Cast<AFramePlayerState>(VictimController->PlayerState) : nullptr;
 
-    if (AttackerPlayerState && AttackerPlayerState != VictimPlayerState)
+    AFrameGameState* FrameGameState = GetGameState<AFrameGameState>();
+
+    if (AttackerPlayerState && AttackerPlayerState != VictimPlayerState && FrameGameState)
     {
         AttackerPlayerState->AddToScore(10.f);
+        FrameGameState->UpdateTopScore(AttackerPlayerState);
     }
 
     if (VictimPlayerState)

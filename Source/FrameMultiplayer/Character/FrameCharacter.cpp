@@ -281,6 +281,9 @@ void AFrameCharacter::PlayReloadMontage()
 			case EWeaponType::EWT_AssaultRifle:
 				SectionName = FName("RifleReload");
 				break;
+			case EWeaponType::EWT_RocketLauncher:
+				SectionName = FName("RifleReload");
+				break;
 		}	
 
 

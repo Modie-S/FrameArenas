@@ -365,7 +365,7 @@ void AFramePlayerController::HandleMatchHasStarted()
     FrameHUD = FrameHUD == nullptr ? Cast<AFrameHUD>(GetHUD()) : FrameHUD;
         if (FrameHUD)
         {
-            FrameHUD->AddCharacterOverlay();
+            if (FrameHUD->CharacterOverlay == nullptr) FrameHUD->AddCharacterOverlay();
             if (FrameHUD->Announcement)
             {
                 FrameHUD->Announcement->SetVisibility(ESlateVisibility::Hidden);

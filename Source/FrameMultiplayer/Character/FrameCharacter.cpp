@@ -284,6 +284,15 @@ void AFrameCharacter::PlayReloadMontage()
 			case EWeaponType::EWT_RocketLauncher:
 				SectionName = FName("RifleReload");
 				break;
+			case EWeaponType::EWT_Pistol:
+				SectionName = FName("PistolReload");
+				break;
+			case EWeaponType::EWT_SubmachineGun:
+				SectionName = FName("SMGReload");
+				break;
+			case EWeaponType::EWT_Shotgun:
+				SectionName = FName("PistolReload");
+				break;
 		}	
 
 

@@ -40,6 +40,9 @@ public:
 	UPROPERTY(Replicated)
 	bool bDisableGameplay = false;
 
+	UFUNCTION(BlueprintImplementableEvent)
+	void ShowSniperScope(bool bShowScope);
+
 	
 
 protected:

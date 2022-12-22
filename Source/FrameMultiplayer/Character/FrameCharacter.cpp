@@ -449,6 +449,12 @@ void AFrameCharacter::MulticastElim_Implementation()
 			GetActorLocation()
 			);
 	}
+
+	bool bHideSniperScope = IsLocallyControlled() && Combat && Combat->bAiming && Combat->EquippedWeapon && Combat->EquippedWeapon->GetWeaponType() == EWeaponType::EWT_SniperRifle;
+	if (bHideSniperScope)
+	{
+		ShowSniperScope(false);
+	}
 }
 
 

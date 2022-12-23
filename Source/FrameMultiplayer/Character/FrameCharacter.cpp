@@ -296,6 +296,9 @@ void AFrameCharacter::PlayReloadMontage()
 			case EWeaponType::EWT_SniperRifle:
 				SectionName = FName("SniperReload");
 				break;
+			case EWeaponType::EWT_GrenadeLauncher:
+				SectionName = FName("RifleReload");
+				break;
 		}	
 
 

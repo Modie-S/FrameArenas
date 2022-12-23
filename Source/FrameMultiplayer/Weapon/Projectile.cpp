@@ -9,6 +9,8 @@
 #include "Sound/SoundCue.h"
 #include "FrameMultiplayer/Character/FrameCharacter.h"
 #include "FrameMultiplayer/FrameMultiplayer.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraComponent.h"
 
 // Sets default values
 AProjectile::AProjectile()
@@ -55,12 +57,69 @@ void AProjectile::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimi
 	Destroy();
 }
 
+void AProjectile::SpawnTrailSystem()
+{
+	if (TrailSystem)
+    {
+        TrailSystemComponent = UNiagaraFunctionLibrary::SpawnSystemAttached(
+            TrailSystem,
+            GetRootComponent(),
+            FName(),
+            GetActorLocation(),
+            GetActorRotation(),
+            EAttachLocation::KeepWorldPosition,
+            false
+        );
+    }
+}
+
+void AProjectile::ExplosionDamage()
+{
+	APawn* FiringPawn = GetInstigator();
+    if (FiringPawn && HasAuthority())
+    {
+        AController* FiringController = FiringPawn->GetController();
+        if (FiringController)
+        {
+            UGameplayStatics::ApplyRadialDamageWithFalloff(
+                this,   // World Contect Obj
+                Damage, // Base Damage
+                10.f,   // Min Damage
+                GetActorLocation(), // Origin
+                DamageInnerRadius,  // Inner Radius of Damage
+                DamageOuterRadius,  // Outer Radius of Damage
+                1.f,    // Damage fall off
+                UDamageType::StaticClass(), // Damage Type Class
+                TArray<AActor*>(),  //IgnoreActors
+                this,    // Damage Cuaser
+                FiringController // InstigatorController
+            );
+        }
+    }
+}
+
 // Called every frame
 void AProjectile::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
 }
+
+void AProjectile::StartDestroyTimer()
+{
+	 GetWorldTimerManager().SetTimer(
+        DestroyTimer,
+        this,
+        &AProjectile::DestroyTimerFinished,
+        DestroyTime
+    );
+}
+
+void AProjectile::DestroyTimerFinished()
+{
+    Destroy();
+}
+
 
 void AProjectile::Destroyed()
 {

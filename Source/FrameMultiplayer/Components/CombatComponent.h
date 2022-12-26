@@ -28,7 +28,15 @@ public:
 	void FinishReloading();
 	void FireButtonPressed(bool bPressed);
 
+	UFUNCTION(BlueprintCallable)
+	void ShotgunShellReload();
 
+	void JumpToShotgunEnd();
+
+	UFUNCTION(BlueprintCallable)
+	void ThrowFinished();
+
+	
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
@@ -59,7 +67,11 @@ protected:
 
 	int32 AmountToReload();
 
-	
+	void Throw();
+
+	UFUNCTION(Server, Reliable)
+	void ServerThrow();
+
 	FText GetWeaponDisplayNameText() const;
 
 private:
@@ -152,7 +164,7 @@ private:
 	int32 StartingSMGAmmo = 0;
 
 	UPROPERTY(EditAnywhere)
-	int32 StartingShotgunAmmo = 0;
+	int32 StartingShotgunAmmo = 8;
 
 	UPROPERTY(EditAnywhere)
 	int32 StartingSniperAmmo = 0;
@@ -169,6 +181,7 @@ private:
 	void OnRep_CombatState();
 
 	void UpdateAmmoValues();
+	void UpdateShotgunAmmoValues();
 
 public:	
 	

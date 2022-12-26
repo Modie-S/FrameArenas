@@ -113,6 +113,7 @@ void AFrameCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComp
 	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AFrameCharacter::FireButtonPressed);
 	PlayerInputComponent->BindAction("Fire", IE_Released, this, &AFrameCharacter::FireButtonReleased);
 	PlayerInputComponent->BindAction("Reload", IE_Pressed, this, &AFrameCharacter::ReloadButtonPressed);
+	PlayerInputComponent->BindAction("Throw", IE_Pressed, this, &AFrameCharacter::ThrowButtonPressed);
 }
 
 
@@ -282,7 +283,7 @@ void AFrameCharacter::PlayReloadMontage()
 				SectionName = FName("RifleReload");
 				break;
 			case EWeaponType::EWT_RocketLauncher:
-				SectionName = FName("RifleReload");
+				SectionName = FName("RocketReload");
 				break;
 			case EWeaponType::EWT_Pistol:
 				SectionName = FName("PistolReload");
@@ -291,13 +292,13 @@ void AFrameCharacter::PlayReloadMontage()
 				SectionName = FName("SMGReload");
 				break;
 			case EWeaponType::EWT_Shotgun:
-				SectionName = FName("PistolReload");
+				SectionName = FName("ShotgunReload");
 				break;
 			case EWeaponType::EWT_SniperRifle:
 				SectionName = FName("SniperReload");
 				break;
 			case EWeaponType::EWT_GrenadeLauncher:
-				SectionName = FName("RifleReload");
+				SectionName = FName("GrenadeReload");
 				break;
 		}	
 
@@ -328,6 +329,25 @@ void AFrameCharacter::PlayHitReactMontage()
 		FName SectionName("HitFront");
 		
 		AnimInstance->Montage_JumpToSection(SectionName);
+	}
+}
+
+
+void AFrameCharacter::PlayGrenadeThrowMontage()
+{
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance && GrenadeThrowMontage)
+	{
+		AnimInstance->Montage_Play(GrenadeThrowMontage);
+	}
+}
+
+
+void AFrameCharacter::ThrowButtonPressed()
+{
+	if (Combat)
+	{
+		Combat->Throw();
 	}
 }
 

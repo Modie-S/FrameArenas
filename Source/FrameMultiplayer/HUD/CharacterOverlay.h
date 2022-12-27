@@ -39,4 +39,7 @@ public:
 
 	UPROPERTY(meta = (BindWidget))
 	UTextBlock* MatchTimeText;
+
+	UPROPERTY(meta = (BindWidget))
+	UTextBlock* GrenadesText;
 };

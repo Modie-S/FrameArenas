@@ -57,6 +57,10 @@ AFrameCharacter::AFrameCharacter()
 	MinNetUpdateFrequency = 33.f;
 
 	DissolveTimeline = CreateDefaultSubobject<UTimelineComponent>(TEXT("DissolveTimelineComponent"));
+
+	AttachedGrenade = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Attached Grenade"));
+	AttachedGrenade->SetupAttachment(GetMesh(), FName("LeftHandSocket"));
+	AttachedGrenade->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
 
@@ -79,6 +83,11 @@ void AFrameCharacter::BeginPlay()
 	if (HasAuthority())
 	{
 		OnTakeAnyDamage.AddDynamic(this, &AFrameCharacter::ReceiveDamage);
+	}
+
+	if (AttachedGrenade)
+	{
+		AttachedGrenade->SetVisibility(false);
 	}
 }
 
@@ -354,6 +363,7 @@ void AFrameCharacter::ThrowButtonPressed()
 
 void AFrameCharacter::ReceiveDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType, class AController* InstigatorController, AActor* DamageCauser)
 {
+	if (bElimmed) return;
 	Health = FMath::Clamp(Health - Damage, 0.f, MaxHealth);
 	UpdateHUDHealth();
 	PlayHitReactMontage();

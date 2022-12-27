@@ -282,6 +282,24 @@ void AFramePlayerController::SetHUDTime()
 }
 
 
+void AFramePlayerController::SetHUDGrenades(int32 Grenades)
+{
+    FrameHUD = FrameHUD == nullptr ? Cast<AFrameHUD>(GetHUD()) : FrameHUD;
+    bool bHUDValid = FrameHUD && 
+                FrameHUD->CharacterOverlay && 
+                FrameHUD->CharacterOverlay->GrenadesText;
+    if (bHUDValid)
+    {
+        FString GrenadesText = FString::Printf(TEXT("%d"), Grenades);
+        FrameHUD->CharacterOverlay->GrenadesText->SetText(FText::FromString(GrenadesText));
+    }
+    else
+    {
+        HUDGrenades = Grenades;
+    }
+}
+
+
 void AFramePlayerController::PollInit()
 {
     if (CharacterOverlay == nullptr)
@@ -294,6 +312,12 @@ void AFramePlayerController::PollInit()
                 SetHUDHealth(HUDHealth, HUDMaxHealth);
                 SetHUDScore(HUDScore);
                 SetHUDElims(HUDElims);
+                AFrameCharacter* FrameCharacter = Cast<AFrameCharacter>(GetPawn());
+                if (FrameCharacter && FrameCharacter->GetCombat())
+                {
+                    SetHUDGrenades(FrameCharacter->GetCombat()->GetGrenades());
+                }
+                
             }
         }
     }

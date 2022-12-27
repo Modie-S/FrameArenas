@@ -185,6 +185,15 @@ private:
 	UPROPERTY()
 	class AFramePlayerState* FramePlayerState;
 
+	//
+	// Grenade
+	//
+
+	UPROPERTY(VisibleAnywhere)
+	UStaticMeshComponent* AttachedGrenade;
+
+
+
 public:
 
 	// Reserved space for get and set methods
@@ -201,5 +210,6 @@ public:
 	FORCEINLINE UCombatComponent* GetCombat() const { return Combat; }
 	FORCEINLINE bool GetDisableGameplay() const { return bDisableGameplay; }
 	FORCEINLINE UAnimMontage* GetReloadMontage() const { return ReloadMontage; }
+	FORCEINLINE UStaticMeshComponent* GetAttachedGrenade() const { return AttachedGrenade; }
 };
 

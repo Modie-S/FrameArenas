@@ -42,7 +42,8 @@ public:
 	UFUNCTION(Server, Reliable)
 	void ServerLaunchGrenade(const FVector_NetQuantize& Target);
 
-	
+	void PickUpAmmo(EWeaponType WeaponType, int32 AmmoAmount);
+
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
@@ -81,8 +82,6 @@ protected:
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<class AProjectile> GrenadeClass;
 
-	FText GetWeaponDisplayNameText() const;
-
 	void DropEquippedWeapon();
 
 	void AttachActorToRightHand(AActor* ActorToAttach);
@@ -96,6 +95,12 @@ protected:
 	void ReloadEmptyWeapon();
 
 	void ShowAttachedGrenade(bool bShowGrenade);
+	
+	//UPROPERTY(ReplicatedUsing = OnRep_WeaponDisplayName)
+	FText GetWeaponDisplayNameText() const;
+
+	//UFUNCTION()
+	//void OnRep_WeaponDisplayName();
 
 private:
 
@@ -173,6 +178,9 @@ private:
 	
 	// Hash function therefore is not replicated and cannot be
 	TMap<EWeaponType, int32> CarriedAmmoMap; 
+
+	UPROPERTY(EditAnywhere)
+	int32 MaxCarriedAmmo = 500;
 
 	UPROPERTY(EditAnywhere)
 	int32 StartingARAmmo = 30;

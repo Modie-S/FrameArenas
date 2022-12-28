@@ -237,7 +237,7 @@ void UCombatComponent::PlayEquipWeaponSound()
 			this, 
 			EquippedWeapon->EquipSound,
 			Character->GetActorLocation()
-		);
+			);
 	}
 }
 
@@ -581,6 +581,12 @@ FText UCombatComponent::GetWeaponDisplayNameText() const
     return WeaponTypeText;
 }
 
+/*void UCombatComponent::OnRep_WeaponDisplayName()
+{
+	GetWeaponDisplayNameText();
+}
+*/
+
 void UCombatComponent::ShotgunShellReload()
 {
 	if (Character && Character->HasAuthority())
@@ -684,4 +690,18 @@ void UCombatComponent::ServerLaunchGrenade_Implementation(const FVector_NetQuant
 void UCombatComponent::OnRep_Grenades()
 {
 	UpdateHUDGrenades();
+}
+
+void UCombatComponent::PickUpAmmo(EWeaponType WeaponType, int32 AmmoAmount)
+{
+	if (CarriedAmmoMap.Contains(WeaponType))
+	{
+		CarriedAmmoMap[WeaponType] = FMath::Clamp(CarriedAmmoMap[WeaponType] + AmmoAmount, 0, MaxCarriedAmmo);
+		UpdateCarriedAmmo();
+	}
+
+	if (EquippedWeapon && EquippedWeapon->IsEmpty() && EquippedWeapon->GetWeaponType() == WeaponType)
+	{
+		Reload();
+	}
 }

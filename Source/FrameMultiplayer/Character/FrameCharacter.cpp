@@ -63,7 +63,6 @@ AFrameCharacter::AFrameCharacter()
 	AttachedGrenade->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
-
 void AFrameCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const 
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
@@ -72,7 +71,6 @@ void AFrameCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 	DOREPLIFETIME(AFrameCharacter, Health);
 	DOREPLIFETIME(AFrameCharacter, bDisableGameplay);
 }
-
 
 // Called when the game starts or when spawned
 void AFrameCharacter::BeginPlay()
@@ -91,7 +89,6 @@ void AFrameCharacter::BeginPlay()
 	}
 }
 
-
 // Called every frame
 void AFrameCharacter::Tick(float DeltaTime)
 {
@@ -99,7 +96,6 @@ void AFrameCharacter::Tick(float DeltaTime)
 	HideCameraIfCharacterClose();
 	PollInit();
 }
-
 
 // Called to bind functionality to input
 void AFrameCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -125,7 +121,6 @@ void AFrameCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComp
 	PlayerInputComponent->BindAction("Throw", IE_Pressed, this, &AFrameCharacter::ThrowButtonPressed);
 }
 
-
 void AFrameCharacter::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
@@ -134,8 +129,6 @@ void AFrameCharacter::PostInitializeComponents()
 		Combat->Character = this;
 	}
 }
-
-
 
 void AFrameCharacter::MoveForward(float Value)
 {
@@ -148,7 +141,6 @@ void AFrameCharacter::MoveForward(float Value)
 	}
 }
 
-
 void AFrameCharacter::MoveRight(float Value)
 {
 	if (bDisableGameplay) return;
@@ -160,18 +152,15 @@ void AFrameCharacter::MoveRight(float Value)
 	}
 }
 
-
 void AFrameCharacter::Turn(float Value)
 {
 	AddControllerYawInput(Value);
 }
 
-
 void AFrameCharacter::LookUp(float Value)
 {
 	AddControllerPitchInput(Value);
 }
-
 
 void AFrameCharacter::EquipButtonPressed()
 {
@@ -189,7 +178,6 @@ void AFrameCharacter::EquipButtonPressed()
 	}
 }
 
-
 void AFrameCharacter::ServerEquipButtonPressed_Implementation()
 {
 	if (Combat)
@@ -197,7 +185,6 @@ void AFrameCharacter::ServerEquipButtonPressed_Implementation()
 		Combat->EquipWeapon(OverlappingWeapon);
 	}
 }
-
 
 void AFrameCharacter::CrouchButtonPressed()
 {
@@ -230,7 +217,6 @@ void AFrameCharacter::AimButtonPressed()
 	}
 }
 
-
 void AFrameCharacter::AimButtonReleased()
 {
 	if (bDisableGameplay) return;
@@ -239,7 +225,6 @@ void AFrameCharacter::AimButtonReleased()
 		Combat->SetAiming(false);
 	}
 }
-
 
 void AFrameCharacter::FireButtonPressed()
 {
@@ -250,7 +235,6 @@ void AFrameCharacter::FireButtonPressed()
 	}
 }
 
-
 void AFrameCharacter::FireButtonReleased()
 {
 	if (bDisableGameplay) return;
@@ -259,7 +243,6 @@ void AFrameCharacter::FireButtonReleased()
 		Combat->FireButtonPressed(false);
 	}
 }
-
 
 void AFrameCharacter::PlayFireMontage(bool bAiming)
 {
@@ -274,7 +257,6 @@ void AFrameCharacter::PlayFireMontage(bool bAiming)
 		AnimInstance->Montage_JumpToSection(SectionName);
 	}
 }
-
 
 void AFrameCharacter::PlayReloadMontage()
 {
@@ -316,7 +298,6 @@ void AFrameCharacter::PlayReloadMontage()
 	}
 }
 
-
 void AFrameCharacter::PlayElimMontage()
 {
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
@@ -325,7 +306,6 @@ void AFrameCharacter::PlayElimMontage()
 		AnimInstance->Montage_Play(ElimMontage);
 	}
 }
-
 
 void AFrameCharacter::PlayHitReactMontage()
 {
@@ -341,7 +321,6 @@ void AFrameCharacter::PlayHitReactMontage()
 	}
 }
 
-
 void AFrameCharacter::PlayGrenadeThrowMontage()
 {
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
@@ -351,7 +330,6 @@ void AFrameCharacter::PlayGrenadeThrowMontage()
 	}
 }
 
-
 void AFrameCharacter::ThrowButtonPressed()
 {
 	if (Combat)
@@ -359,7 +337,6 @@ void AFrameCharacter::ThrowButtonPressed()
 		Combat->Throw();
 	}
 }
-
 
 void AFrameCharacter::ReceiveDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType, class AController* InstigatorController, AActor* DamageCauser)
 {
@@ -381,13 +358,11 @@ void AFrameCharacter::ReceiveDamage(AActor* DamagedActor, float Damage, const UD
 	
 }
 
-
 void AFrameCharacter::OnRep_Health()
 {
 	UpdateHUDHealth();
 	PlayHitReactMontage();
 }
-
 
 void AFrameCharacter::UpdateHUDHealth()
 {
@@ -397,7 +372,6 @@ void AFrameCharacter::UpdateHUDHealth()
 		FramePlayerController->SetHUDHealth(Health, MaxHealth);
 	}
 }
-
 
 void AFrameCharacter::PollInit()
 {
@@ -426,7 +400,6 @@ void AFrameCharacter::Elim()
 		ElimDelay
 	);
 }
-
 
 void AFrameCharacter::MulticastElim_Implementation()
 {
@@ -490,7 +463,6 @@ void AFrameCharacter::MulticastElim_Implementation()
 	}
 }
 
-
 void AFrameCharacter::Destroyed()
 {
 	Super::Destroyed();
@@ -509,7 +481,6 @@ void AFrameCharacter::Destroyed()
 	}
 }
 
-
 void AFrameCharacter::ElimTimerFinished()
 {
 	AFrameGameMode* FrameGameMode = GetWorld()->GetAuthGameMode<AFrameGameMode>();
@@ -519,7 +490,6 @@ void AFrameCharacter::ElimTimerFinished()
 	}
 }
 
-
 void AFrameCharacter::UpdateDissolveMaterial(float DissolveValue)
 {
 	if (DynamicDissolveMaterialInstance)
@@ -527,7 +497,6 @@ void AFrameCharacter::UpdateDissolveMaterial(float DissolveValue)
 		DynamicDissolveMaterialInstance->SetScalarParameterValue(TEXT("Dissolve"), DissolveValue);
 	}
 }
-
 
 void AFrameCharacter::StartDissolve()
 {
@@ -538,7 +507,6 @@ void AFrameCharacter::StartDissolve()
 		DissolveTimeline->Play();
 	}
 }
-
 
 void AFrameCharacter::SetOverlappingWeapon(AWeapon* Weapon)
 {
@@ -556,7 +524,6 @@ void AFrameCharacter::SetOverlappingWeapon(AWeapon* Weapon)
 		}
 	}
 }
-
 
 void AFrameCharacter::OnRep_OverlappingWeapon(AWeapon* LastWeapon)
 {
@@ -592,18 +559,15 @@ void AFrameCharacter::HideCameraIfCharacterClose()
 	}
 }
 
-
 bool AFrameCharacter::IsWeaponEquipped()
 {
 	return (Combat && Combat->EquippedWeapon);
 }
 
-
 bool AFrameCharacter::IsAiming()
 {
 	return (Combat && Combat->bAiming);
 }
-
 
 AWeapon* AFrameCharacter::GetEquippedWeapon()
 {
@@ -611,13 +575,11 @@ AWeapon* AFrameCharacter::GetEquippedWeapon()
 	return Combat->EquippedWeapon;
 }
 
-
 FVector AFrameCharacter::GetHitTarget() const
 {
 	if (Combat == nullptr) return FVector();
 	return Combat->HitTarget;
 }
-
 
 ECombatState AFrameCharacter::GetCombatState() const
 {

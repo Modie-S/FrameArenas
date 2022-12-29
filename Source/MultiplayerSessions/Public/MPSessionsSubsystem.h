@@ -1,4 +1,5 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// MaxiMod Games 2022
+// Modie Shakarchi
 
 #pragma once
 

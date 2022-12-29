@@ -6,7 +6,8 @@
 #include "Sound/SoundCue.h"
 #include "Components/SphereComponent.h"
 #include "FrameMultiplayer/Weapon/WeaponTypes.h"
-
+#include "NiagaraComponent.h"
+#include "NiagaraFunctionLibrary.h"
 
 APickUps::APickUps()
 {
@@ -30,6 +31,9 @@ APickUps::APickUps()
 	PickUpMesh->SetRelativeScale3D(FVector(2.f, 2.f, 2.f));
 	PickUpMesh->SetRenderCustomDepth(true);
 	PickUpMesh->SetCustomDepthStencilValue(CUSTOM_DEPTH_ORANGE);
+
+	PickUpEffectComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("PickupEffectComponent"));
+    PickUpEffectComponent->SetupAttachment(RootComponent);
 
 }
 
@@ -75,5 +79,15 @@ void APickUps::Destroyed()
 			GetActorLocation()
 			);
 	}
+
+	if (PickUpEffect)
+    {
+        UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+        this,
+        PickUpEffect,
+        GetActorLocation(),
+        GetActorRotation()
+        );
+    }
 }
 

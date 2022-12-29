@@ -1,26 +1,71 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// MaxiMod Games 2022
+// Modie Shakarchi
 
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Actor.h"
+#include "Components/ActorComponent.h"
 #include "BuffComponent.generated.h"
 
-UCLASS()
-class FRAMEMULTIPLAYER_API ABuffComponent : public AActor
+
+UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
+class FRAMEMULTIPLAYER_API UBuffComponent : public UActorComponent
 {
 	GENERATED_BODY()
-	
+
 public:	
 	
-	ABuffComponent();
+	UBuffComponent();
+	friend class AFrameCharacter;
+	void Heal(float HealAmount, float HealinhTime);
+	void SpeedBuff(float BuffBaseSpeed, float BuffCrouchSpeed, float BuffTime);
+	void SetInitialSpeeds(float BaseSpeed, float CrouchSpeed);
+	void SetInitialJumpVelocity(float Velocity);
+	void JumpBuff(float BuffJumpVelocity, float BuffTime);
 
 protected:
 	
 	virtual void BeginPlay() override;
+	void HealRampUp(float DeltaTime);
+
+private:
+
+	UPROPERTY()
+	class AFrameCharacter* Character;
+
+	//
+	// Health
+	//
+	bool bHealing = false;
+	float HealingRate = 0.f;
+	float AmountToHeal = 0.f;
+
+	//
+	// Speed
+	//
+	FTimerHandle SpeedBuffTimer;
+	void ResetSpeeds();
+	float InitialBaseSpeed;
+	float InitialCrouchSpeed;
+	
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastSpeedBuff(float BaseSpeed, float CrouchSpeed);
+	
+	//
+	// Jump
+	//
+	FTimerHandle JumpBuffTimer;
+	void ResetJump();
+	float InitialJumpVelocity;
+
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastJumpBuff(float JumpVelocity);
+
+	
 
 public:	
 	
-	virtual void Tick(float DeltaTime) override;
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
+		
 };

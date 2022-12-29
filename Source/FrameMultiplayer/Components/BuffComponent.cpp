@@ -1,27 +1,139 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// MaxiMod Games 2022
+// Modie Shakarchi
 
 
 #include "BuffComponent.h"
+#include "FrameMultiplayer/Character/FrameCharacter.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 
-ABuffComponent::ABuffComponent()
+UBuffComponent::UBuffComponent()
 {
- 
-	PrimaryActorTick.bCanEverTick = true;
-
+	PrimaryComponentTick.bCanEverTick = true;
 }
 
+void UBuffComponent::Heal(float HealAmount, float HealingTime)
+{
+	bHealing = true;
+	HealingRate = HealAmount / HealingTime;
+	AmountToHeal += HealAmount;
+}
 
-void ABuffComponent::BeginPlay()
+void UBuffComponent::HealRampUp(float DeltaTime)
+{
+	if (!bHealing || Character == nullptr || Character->IsElimmed()) return;
+
+	const float HealThisFrame = HealingRate * DeltaTime;
+	Character->SetHealth(FMath::Clamp(Character->GetHealth() + HealThisFrame, 0.f, Character->GetMaxHealth()));
+	Character->UpdateHUDHealth();
+	AmountToHeal -= HealThisFrame;
+
+	if (AmountToHeal <= 0.f || Character->GetHealth() >= Character->GetMaxHealth())
+	{
+		bHealing = false;
+		AmountToHeal = 0.f;
+	}
+}
+
+void UBuffComponent::BeginPlay()
 {
 	Super::BeginPlay();
+
+	
 	
 }
 
-
-void ABuffComponent::Tick(float DeltaTime)
+void UBuffComponent::SetInitialSpeeds(float BaseSpeed, float CrouchSpeed)
 {
-	Super::Tick(DeltaTime);
+	InitialBaseSpeed = BaseSpeed;
+	InitialCrouchSpeed = CrouchSpeed;
+}
 
+void UBuffComponent::SetInitialJumpVelocity(float Velocity)
+{
+	InitialJumpVelocity = Velocity;
+}
+
+void UBuffComponent::SpeedBuff(float BuffBaseSpeed, float BuffCrouchSpeed, float BuffTime)
+{
+	if (Character == nullptr) return;
+
+	Character->GetWorldTimerManager().SetTimer(
+		SpeedBuffTimer, 
+		this, 
+		&UBuffComponent::ResetSpeeds, 
+		BuffTime
+		);
+
+	if (Character->GetCharacterMovement())
+	{
+		Character->GetCharacterMovement()->MaxWalkSpeed = BuffBaseSpeed;
+		Character->GetCharacterMovement()->MaxWalkSpeedCrouched = BuffCrouchSpeed;
+	}
+
+	MulticastSpeedBuff(BuffBaseSpeed, BuffCrouchSpeed);
+}
+
+void UBuffComponent::ResetSpeeds()
+{
+	if (Character == nullptr || Character->GetCharacterMovement() == nullptr) return;
+
+	Character->GetCharacterMovement()->MaxWalkSpeed = InitialBaseSpeed;
+	Character->GetCharacterMovement()->MaxWalkSpeedCrouched = InitialCrouchSpeed;
+	MulticastSpeedBuff(InitialBaseSpeed, InitialCrouchSpeed);
+}
+
+void UBuffComponent::MulticastSpeedBuff_Implementation(float BaseSpeed, float CrouchSpeed)
+{
+	if (Character && Character->GetCharacterMovement())
+	{
+		Character->GetCharacterMovement()->MaxWalkSpeed = BaseSpeed;
+		Character->GetCharacterMovement()->MaxWalkSpeedCrouched = CrouchSpeed;
+	}
+	
+}
+
+void UBuffComponent::JumpBuff(float BuffJumpVelocity, float BuffTime)
+{
+	if (Character == nullptr) return;
+
+	Character->GetWorldTimerManager().SetTimer(
+		JumpBuffTimer, 
+		this, 
+		&UBuffComponent::ResetJump, 
+		BuffTime
+		);
+
+	if (Character->GetCharacterMovement())
+	{
+		Character->GetCharacterMovement()->JumpZVelocity = BuffJumpVelocity;
+	}
+
+	MulticastJumpBuff(BuffJumpVelocity);
+}
+
+void UBuffComponent::MulticastJumpBuff_Implementation(float JumpVelocity)
+{
+	if (Character && Character->GetCharacterMovement())
+	{
+		Character->GetCharacterMovement()->JumpZVelocity = JumpVelocity;
+	}
+}
+
+void UBuffComponent::ResetJump()
+{
+	if (Character->GetCharacterMovement())
+	{
+		Character->GetCharacterMovement()->JumpZVelocity = InitialJumpVelocity;
+	}
+
+	MulticastJumpBuff(InitialJumpVelocity);
+}
+
+void UBuffComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+{
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
+	HealRampUp(DeltaTime);
 }
 

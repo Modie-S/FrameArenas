@@ -10,6 +10,7 @@
 #include "Net/UnrealNetwork.h"
 #include "FrameMultiplayer/Weapon/Weapon.h"
 #include "FrameMultiplayer/Components/CombatComponent.h"
+#include "FrameMultiplayer/Components/BuffComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "FrameAnimInstance.h"
 #include "FrameMultiplayer/FrameMultiplayer.h"
@@ -46,6 +47,9 @@ AFrameCharacter::AFrameCharacter()
 
 	Combat = CreateDefaultSubobject<UCombatComponent>(TEXT("CombatComponent"));
 	Combat->SetIsReplicated(true);
+
+	Buff = CreateDefaultSubobject<UBuffComponent>(TEXT("BuffComponent"));
+	Buff->SetIsReplicated(true);
 
 	GetCharacterMovement()->NavAgentProps.bCanCrouch = true;
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
@@ -128,6 +132,14 @@ void AFrameCharacter::PostInitializeComponents()
 	{
 		Combat->Character = this;
 	}
+	if (Buff)
+	{
+		Buff->Character = this;
+		Buff->SetInitialSpeeds(GetCharacterMovement()->MaxWalkSpeed, GetCharacterMovement()->MaxWalkSpeedCrouched);
+		Buff->SetInitialJumpVelocity(GetCharacterMovement()->JumpZVelocity);
+	}
+	
+	
 }
 
 void AFrameCharacter::MoveForward(float Value)
@@ -358,10 +370,14 @@ void AFrameCharacter::ReceiveDamage(AActor* DamagedActor, float Damage, const UD
 	
 }
 
-void AFrameCharacter::OnRep_Health()
+void AFrameCharacter::OnRep_Health(float LastHealth)
 {
 	UpdateHUDHealth();
-	PlayHitReactMontage();
+	if (Health < LastHealth)
+	{
+		PlayHitReactMontage();
+	}
+	
 }
 
 void AFrameCharacter::UpdateHUDHealth()

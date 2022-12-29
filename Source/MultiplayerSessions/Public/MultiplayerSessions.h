@@ -1,4 +1,5 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// MaxiMod Games 2022
+// Modie Shakarchi
 
 #pragma once
 

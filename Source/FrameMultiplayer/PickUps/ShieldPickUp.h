@@ -5,19 +5,15 @@
 
 #include "CoreMinimal.h"
 #include "PickUps.h"
-#include "HealthPickUp.generated.h"
+#include "ShieldPickUp.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class FRAMEMULTIPLAYER_API AHealthPickUp : public APickUps
+class FRAMEMULTIPLAYER_API AShieldPickUp : public APickUps
 {
 	GENERATED_BODY()
-
-public:
-
-	AHealthPickUp();
 
 protected:
 
@@ -33,9 +29,9 @@ protected:
 private:
 
 	UPROPERTY(EditAnywhere)
-	float HealAmount = 100.f;
+	float ShieldRecharge = 100.f;
 
 	UPROPERTY(EditAnywhere)
-	float HealingTime = 5.f;
-
+	float ShieldRechargeTime = 5.f;
+	
 };

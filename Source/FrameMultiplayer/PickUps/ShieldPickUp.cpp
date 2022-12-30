@@ -2,20 +2,11 @@
 // Modie Shakarchi
 
 
-#include "HealthPickUp.h"
+#include "ShieldPickUp.h"
 #include "FrameMultiplayer/Character/FrameCharacter.h"
 #include "FrameMultiplayer/Components/BuffComponent.h"
 
-
-
-
-AHealthPickUp::AHealthPickUp()
-{
-    bReplicates = true;
-    
-}
-
-void AHealthPickUp::OnSphereOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+void AShieldPickUp::OnSphereOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
     Super::OnSphereOverlap(OverlappedComponent, OtherActor, OtherComp, OtherBodyIndex, bFromSweep, SweepResult);
 
@@ -25,7 +16,7 @@ void AHealthPickUp::OnSphereOverlap(UPrimitiveComponent* OverlappedComponent, AA
        UBuffComponent* Buff = FrameCharacter->GetBuff();
        if (Buff)
        {
-            Buff->Heal(HealAmount, HealingTime);
+            Buff->RechargeShield(ShieldRecharge, ShieldRechargeTime);
        }
     }
 

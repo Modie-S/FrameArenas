@@ -17,7 +17,8 @@ public:
 	
 	UBuffComponent();
 	friend class AFrameCharacter;
-	void Heal(float HealAmount, float HealinhTime);
+	void Heal(float HealAmount, float HealingTime);
+	void RechargeShield(float ShieldAmount, float RechargeTime);
 	void SpeedBuff(float BuffBaseSpeed, float BuffCrouchSpeed, float BuffTime);
 	void SetInitialSpeeds(float BaseSpeed, float CrouchSpeed);
 	void SetInitialJumpVelocity(float Velocity);
@@ -27,6 +28,7 @@ protected:
 	
 	virtual void BeginPlay() override;
 	void HealRampUp(float DeltaTime);
+	void ShieldRampUp(float DeltaTime);
 
 private:
 
@@ -39,6 +41,13 @@ private:
 	bool bHealing = false;
 	float HealingRate = 0.f;
 	float AmountToHeal = 0.f;
+
+	//
+	// Shield
+	//
+	bool bRecharging = false;
+	float RechargeRate = 0.f;
+	float AmountToRecharge = 0.f;
 
 	//
 	// Speed

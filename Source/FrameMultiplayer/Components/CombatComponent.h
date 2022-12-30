@@ -19,13 +19,20 @@ public:
 	// Sets default values for this component's properties
 	UCombatComponent();
 	friend class AFrameCharacter;
+	
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+	
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	
 	void EquipWeapon(class AWeapon* WeaponToEquip);
+
+	void SwapWeapon();
+	
 	void Reload();
 	
 	UFUNCTION(BlueprintCallable)
 	void FinishReloading();
+	
 	void FireButtonPressed(bool bPressed);
 
 	UFUNCTION(BlueprintCallable)
@@ -45,8 +52,9 @@ public:
 	void PickUpAmmo(EWeaponType WeaponType, int32 AmmoAmount);
 
 protected:
-	// Called when the game starts
+	
 	virtual void BeginPlay() override;
+	
 	void SetAiming(bool bIsAiming);
 
 	UFUNCTION(Server, Reliable)
@@ -54,6 +62,9 @@ protected:
 
 	UFUNCTION()
 	void OnRep_EquippedWeapon();
+
+	UFUNCTION()
+	void OnRep_SecondaryWeapon();
 
 	void Fire();
 
@@ -88,9 +99,11 @@ protected:
 
 	void AttachActorToLeftHand(AActor* ActorToAttach);
 
+	void AttachActorToBackpack(AActor* ActorToAttach);
+
 	void UpdateCarriedAmmo();
 
-	void PlayEquipWeaponSound();
+	void PlayEquipWeaponSound(AWeapon* WeaponToEquip);
 
 	void ReloadEmptyWeapon();
 
@@ -101,6 +114,9 @@ protected:
 
 	//UFUNCTION()
 	//void OnRep_WeaponDisplayName();
+
+	void EquipPrimaryWeapon(AWeapon* WeaponToEquip);
+	void EquipSecondaryWeapon(AWeapon* WeaponToEquip);
 
 private:
 
@@ -113,8 +129,11 @@ private:
 	UPROPERTY()
 	class AFrameHUD* HUD;
 
-	UPROPERTY(Replicated)
+	UPROPERTY(ReplicatedUsing = OnRep_EquippedWeapon)
 	AWeapon* EquippedWeapon;
+
+	UPROPERTY(ReplicatedUsing = OnRep_SecondaryWeapon)
+	AWeapon* SecondaryWeapon;
 
 	UPROPERTY(Replicated)
 	bool bAiming;
@@ -130,7 +149,6 @@ private:
 	//
 	// HUD and Crosshairs
 	//
-
 	float CrosshairVelocityFactor;
 	float CrosshairInAirFactor;
 	float CrosshairAimFactor;
@@ -143,7 +161,6 @@ private:
 	//
 	// Aiming and FOV
 	//
-
 	// FOV when not aiming; set to base camera FOV
 	float DefaultFOV;
 
@@ -160,7 +177,6 @@ private:
 	//
 	// Automatic firing
 	//
-
 	FTimerHandle FireTimer;
 	bool bCanFire = true;
 
@@ -228,6 +244,6 @@ private:
 public:	
 	
 	FORCEINLINE int32 GetGrenades() const { return Grenades; }
-
+	bool CanSwapWeapon();
 		
 };

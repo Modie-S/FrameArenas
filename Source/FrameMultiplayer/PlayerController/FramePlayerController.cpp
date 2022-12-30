@@ -1,4 +1,5 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// MaxiMod Games 2022
+// Modie Shakarchi
 
 
 #include "FramePlayerController.h"
@@ -15,6 +16,7 @@
 #include "FrameMultiplayer/GameState/FrameGameState.h"
 #include "FrameMultiplayer/PlayerState/FramePlayerState.h"
 
+
 void AFramePlayerController::BeginPlay()
 {
     Super::BeginPlay();
@@ -23,14 +25,12 @@ void AFramePlayerController::BeginPlay()
     ServerCheckMatchState();
 }
 
-
 void AFramePlayerController::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const 
 {
     Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
     DOREPLIFETIME(AFramePlayerController, MatchState);
 }
-
 
 void AFramePlayerController::Tick(float DeltaTime)
 {
@@ -41,7 +41,6 @@ void AFramePlayerController::Tick(float DeltaTime)
     PollInit();
 }
 
-
 void AFramePlayerController::CheckTimeSync(float DeltaTime)
 {
     TimeSyncRunningTime += DeltaTime;
@@ -51,7 +50,6 @@ void AFramePlayerController::CheckTimeSync(float DeltaTime)
         TimeSyncRunningTime = 0.f;
     }
 }
-
 
 void AFramePlayerController::ServerCheckMatchState_Implementation()
 {
@@ -72,7 +70,6 @@ void AFramePlayerController::ServerCheckMatchState_Implementation()
     }
 }
 
-
 void AFramePlayerController::ClientJoinMidgame_Implementation(FName StateOfMatch, float WarmUp, float Match, float Cooldown, float StartingTime)
 {
     WarmUpTime = WarmUp;
@@ -87,7 +84,6 @@ void AFramePlayerController::ClientJoinMidgame_Implementation(FName StateOfMatch
     }
 }
 
-
 void AFramePlayerController::OnPossess(APawn* InPawn)
 {
     Super::OnPossess(InPawn);
@@ -98,7 +94,6 @@ void AFramePlayerController::OnPossess(APawn* InPawn)
         SetHUDHealth(FrameCharacter->GetHealth(), FrameCharacter->GetMaxHealth());
     }
 }
-
 
 void AFramePlayerController::SetHUDHealth(float Health, float MaxHealth)
 {
@@ -118,12 +113,35 @@ void AFramePlayerController::SetHUDHealth(float Health, float MaxHealth)
     }
     else
     {
-        bInitializeCharacterOverlay = true;
+        bInitializeHealth = true;
         HUDHealth = Health;
         HUDMaxHealth = MaxHealth;
     }
 }
 
+void AFramePlayerController::SetHUDShield(float Shield, float MaxShield)
+{
+    FrameHUD = FrameHUD == nullptr ? Cast<AFrameHUD>(GetHUD()) : FrameHUD;
+    
+    bool bHUDValid = FrameHUD && 
+                FrameHUD->CharacterOverlay && 
+                FrameHUD->CharacterOverlay->ShieldBar && 
+                FrameHUD->CharacterOverlay->ShieldText;
+    
+    if (bHUDValid)
+    {
+        const float ShieldPercent = Shield / MaxShield;
+        FrameHUD->CharacterOverlay->ShieldBar->SetPercent(ShieldPercent);
+        FString ShieldText = FString::Printf(TEXT("%d/%d"), FMath::CeilToInt(Shield), FMath::CeilToInt(MaxShield));
+        FrameHUD->CharacterOverlay->ShieldText->SetText(FText::FromString(ShieldText));
+    }
+    else
+    {
+        bInitializeShield = true;
+        HUDShield = Shield;
+        HUDMaxShield = MaxShield;
+    }
+}
 
 void AFramePlayerController::SetHUDScore(float Score)
 {
@@ -138,11 +156,10 @@ void AFramePlayerController::SetHUDScore(float Score)
     }
     else
     {
-        bInitializeCharacterOverlay = true;
+        bInitializeScore = true;
         HUDScore = Score;
     }
 }
-
 
 void AFramePlayerController::SetHUDElims(int32 Elims)
 {
@@ -157,11 +174,10 @@ void AFramePlayerController::SetHUDElims(int32 Elims)
     }
     else
     {
-        bInitializeCharacterOverlay = true;
+        bInitializeElims = true;
         HUDElims = Elims;
     }
 }
-
 
 void AFramePlayerController::SetHUDWeaponAmmo(int32 Ammo)
 {
@@ -174,8 +190,12 @@ void AFramePlayerController::SetHUDWeaponAmmo(int32 Ammo)
         FString AmmoText = FString::Printf(TEXT("%d"), Ammo);
         FrameHUD->CharacterOverlay->WeaponAmmoAmount->SetText(FText::FromString(AmmoText));
     }
+    else
+    {
+        bInitializeWeaponAmmo = true;
+        HUDWeaponAmmo = Ammo;
+    }
 }
-
 
 void AFramePlayerController::SetHUDCarriedAmmo(int32 Ammo)
 {
@@ -188,8 +208,12 @@ void AFramePlayerController::SetHUDCarriedAmmo(int32 Ammo)
         FString AmmoText = FString::Printf(TEXT("%d"), Ammo);
         FrameHUD->CharacterOverlay->CarriedAmmoAmount->SetText(FText::FromString(AmmoText));
     }
+    else
+    {
+        bInitializeCarriedAmmo = true;
+        HUDCarriedAmmo = Ammo;
+    }
 }
-
 
 void AFramePlayerController::SetHUDWeaponType(FText WeaponType)
 {
@@ -202,7 +226,6 @@ void AFramePlayerController::SetHUDWeaponType(FText WeaponType)
         FrameHUD->CharacterOverlay->WeaponTypeText->SetText(WeaponType);
     }
 }
-
 
 void AFramePlayerController::SetHUDMatchTime(float CountdownTime)
 {
@@ -247,7 +270,6 @@ void AFramePlayerController::SetHUDAnnouncementCountdown(float CountdownTime)
     }
 }
 
-
 void AFramePlayerController::SetHUDTime()
 {
     float TimeLeft = 0.f;
@@ -281,7 +303,6 @@ void AFramePlayerController::SetHUDTime()
     CountdownInt = SecondsLeft;
 }
 
-
 void AFramePlayerController::SetHUDGrenades(int32 Grenades)
 {
     FrameHUD = FrameHUD == nullptr ? Cast<AFrameHUD>(GetHUD()) : FrameHUD;
@@ -295,10 +316,10 @@ void AFramePlayerController::SetHUDGrenades(int32 Grenades)
     }
     else
     {
+        bInitializeGrenades = true;
         HUDGrenades = Grenades;
     }
 }
-
 
 void AFramePlayerController::PollInit()
 {
@@ -309,20 +330,22 @@ void AFramePlayerController::PollInit()
             CharacterOverlay = FrameHUD->CharacterOverlay;
             if (CharacterOverlay)
             {
-                SetHUDHealth(HUDHealth, HUDMaxHealth);
-                SetHUDScore(HUDScore);
-                SetHUDElims(HUDElims);
+                if (bInitializeHealth) SetHUDHealth(HUDHealth, HUDMaxHealth);
+                if (bInitializeShield) SetHUDShield(HUDShield, HUDMaxShield);
+                if (bInitializeScore) SetHUDScore(HUDScore);
+                if (bInitializeElims) SetHUDElims(HUDElims);
+                if (bInitializeCarriedAmmo) SetHUDCarriedAmmo(HUDCarriedAmmo);
+                if (bInitializeWeaponAmmo) SetHUDWeaponAmmo(HUDWeaponAmmo);
+                
                 AFrameCharacter* FrameCharacter = Cast<AFrameCharacter>(GetPawn());
                 if (FrameCharacter && FrameCharacter->GetCombat())
                 {
-                    SetHUDGrenades(FrameCharacter->GetCombat()->GetGrenades());
+                    if (bInitializeGrenades) SetHUDGrenades(FrameCharacter->GetCombat()->GetGrenades());
                 }
-                
             }
         }
     }
 }
-
 
 void AFramePlayerController::ServerRequestServerTime_Implementation(float TimeOfClientRequest)
 {
@@ -330,14 +353,12 @@ void AFramePlayerController::ServerRequestServerTime_Implementation(float TimeOf
     ClientReportServerTime(TimeOfClientRequest, ServerTimeOfReceipt);
 }
 
-
 void AFramePlayerController::ClientReportServerTime_Implementation(float TimeOfClientRequest, float TimeServerReceivedClientRequest)
 {
     float RoundTripTime = GetWorld()->GetTimeSeconds() - TimeOfClientRequest;
     float CurrentServerTime = TimeServerReceivedClientRequest + (0.5f * RoundTripTime);
     ClientServerDelta = CurrentServerTime - GetWorld()->GetTimeSeconds();
 }
-
 
 float AFramePlayerController::GetServerTime()
 {
@@ -354,7 +375,6 @@ void AFramePlayerController::ReceivedPlayer()
     }
 }
 
-
 void AFramePlayerController::OnMatchStateSet(FName State)
 {
     MatchState = State;
@@ -370,7 +390,6 @@ void AFramePlayerController::OnMatchStateSet(FName State)
     
 }
 
-
 void AFramePlayerController::OnRep_MatchState()
 {
     if (MatchState == MatchState::InProgress)
@@ -382,7 +401,6 @@ void AFramePlayerController::OnRep_MatchState()
         HandleCooldown();
     }
 }
-
 
 void AFramePlayerController::HandleMatchHasStarted()
 {
@@ -396,7 +414,6 @@ void AFramePlayerController::HandleMatchHasStarted()
             }
         }
 }
-
 
 void AFramePlayerController::HandleCooldown()
 {

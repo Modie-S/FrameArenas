@@ -24,7 +24,6 @@
 #include "FrameMultiplayer/Weapon/WeaponTypes.h"
 
 
-// Sets default values
 AFrameCharacter::AFrameCharacter()
 {
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
@@ -73,15 +72,18 @@ void AFrameCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 
 	DOREPLIFETIME_CONDITION(AFrameCharacter, OverlappingWeapon, COND_OwnerOnly);
 	DOREPLIFETIME(AFrameCharacter, Health);
+	DOREPLIFETIME(AFrameCharacter, Shield);
 	DOREPLIFETIME(AFrameCharacter, bDisableGameplay);
 }
 
-// Called when the game starts or when spawned
 void AFrameCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
+	SpawnDefaultWeapon();
+	UpdateHUDAmmo();
 	UpdateHUDHealth();
+	UpdateHUDShield();
 	if (HasAuthority())
 	{
 		OnTakeAnyDamage.AddDynamic(this, &AFrameCharacter::ReceiveDamage);
@@ -93,7 +95,6 @@ void AFrameCharacter::BeginPlay()
 	}
 }
 
-// Called every frame
 void AFrameCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
@@ -101,7 +102,6 @@ void AFrameCharacter::Tick(float DeltaTime)
 	PollInit();
 }
 
-// Called to bind functionality to input
 void AFrameCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
@@ -138,8 +138,6 @@ void AFrameCharacter::PostInitializeComponents()
 		Buff->SetInitialSpeeds(GetCharacterMovement()->MaxWalkSpeed, GetCharacterMovement()->MaxWalkSpeedCrouched);
 		Buff->SetInitialJumpVelocity(GetCharacterMovement()->JumpZVelocity);
 	}
-	
-	
 }
 
 void AFrameCharacter::MoveForward(float Value)
@@ -179,14 +177,7 @@ void AFrameCharacter::EquipButtonPressed()
 	if (bDisableGameplay) return;
 	if (Combat)
 	{
-		if (HasAuthority())
-		{
-			Combat->EquipWeapon(OverlappingWeapon);
-		}
-		else
-		{
-			ServerEquipButtonPressed();
-		}
+		ServerEquipButtonPressed();
 	}
 }
 
@@ -194,7 +185,14 @@ void AFrameCharacter::ServerEquipButtonPressed_Implementation()
 {
 	if (Combat)
 	{
-		Combat->EquipWeapon(OverlappingWeapon);
+		if (OverlappingWeapon)
+		{
+			Combat->EquipWeapon(OverlappingWeapon);
+		}
+		else if (Combat->CanSwapWeapon())
+		{
+			Combat->SwapWeapon();
+		}
 	}
 }
 
@@ -353,8 +351,26 @@ void AFrameCharacter::ThrowButtonPressed()
 void AFrameCharacter::ReceiveDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType, class AController* InstigatorController, AActor* DamageCauser)
 {
 	if (bElimmed) return;
-	Health = FMath::Clamp(Health - Damage, 0.f, MaxHealth);
+
+	float DamageToHealth = Damage;
+	if (Shield > 0.f) // Damage shield first
+	{
+		if (Shield >= Damage)
+		{
+			Shield = FMath::Clamp(Shield - Damage, 0.f, MaxShield);
+			DamageToHealth = 0.f;
+		}
+		else
+		{
+			Shield = 0.f;
+			DamageToHealth = FMath::Clamp(DamageToHealth - Shield, 0.f, Damage);
+		}
+	}
+
+	Health = FMath::Clamp(Health - DamageToHealth, 0.f, MaxHealth);
+
 	UpdateHUDHealth();
+	UpdateHUDShield();
 	PlayHitReactMontage();
 
 	if (Health == 0.f)
@@ -377,7 +393,6 @@ void AFrameCharacter::OnRep_Health(float LastHealth)
 	{
 		PlayHitReactMontage();
 	}
-	
 }
 
 void AFrameCharacter::UpdateHUDHealth()
@@ -386,6 +401,49 @@ void AFrameCharacter::UpdateHUDHealth()
 	if (FramePlayerController)
 	{
 		FramePlayerController->SetHUDHealth(Health, MaxHealth);
+	}
+}
+
+void AFrameCharacter::OnRep_Shield(float LastShield)
+{
+	UpdateHUDShield();
+	if (Shield < LastShield)
+	{
+		PlayHitReactMontage();
+	}
+}
+
+void AFrameCharacter::UpdateHUDShield()
+{
+	FramePlayerController = FramePlayerController == nullptr ? Cast<AFramePlayerController>(Controller) : FramePlayerController;
+	if (FramePlayerController)
+	{
+		FramePlayerController->SetHUDShield(Shield, MaxShield);
+	}
+}
+
+void AFrameCharacter::UpdateHUDAmmo()
+{
+	FramePlayerController = FramePlayerController == nullptr ? Cast<AFramePlayerController>(Controller) : FramePlayerController;
+	if (FramePlayerController && Combat && Combat->EquippedWeapon)
+	{
+		FramePlayerController->SetHUDCarriedAmmo(Combat->CarriedAmmo);
+		FramePlayerController->SetHUDWeaponAmmo(Combat->EquippedWeapon->GetAmmo());
+	}
+}
+
+void AFrameCharacter::SpawnDefaultWeapon()
+{
+	AFrameGameMode* FrameGameMode = Cast<AFrameGameMode>(UGameplayStatics::GetGameMode(this));
+	UWorld* World = GetWorld();
+	if (FrameGameMode && World && !bElimmed && DefaultWeaponClass)
+	{
+		AWeapon* StartingWeapon = World->SpawnActor<AWeapon>(DefaultWeaponClass);
+		StartingWeapon->bDestroyWeapon = true;
+		if (Combat)
+		{
+			Combat->EquipWeapon(StartingWeapon);
+		}
 	}
 }
 
@@ -404,11 +462,10 @@ void AFrameCharacter::PollInit()
 
 void AFrameCharacter::Elim()
 {
-	if (Combat && Combat->EquippedWeapon)
-	{
-		Combat->EquippedWeapon->Dropped();
-	}
+	DropOrDestroyWeapons();
+	
 	MulticastElim();
+	
 	GetWorldTimerManager().SetTimer(
 		ElimTimer,
 		this, 
@@ -476,6 +533,34 @@ void AFrameCharacter::MulticastElim_Implementation()
 	if (bHideSniperScope)
 	{
 		ShowSniperScope(false);
+	}
+}
+
+void AFrameCharacter::DropOrDestroy(AWeapon* Weapon)
+{
+	if (Weapon == nullptr) return;
+	if (Weapon->bDestroyWeapon)
+	{
+		Weapon->Destroy();
+	}
+	else
+	{
+		Weapon->Dropped();
+	}
+}
+
+void AFrameCharacter::DropOrDestroyWeapons()
+{
+	if (Combat)
+	{
+		if (Combat->EquippedWeapon)
+		{
+			DropOrDestroy(Combat->EquippedWeapon);
+		}
+		if (Combat->SecondaryWeapon)
+		{
+			DropOrDestroy(Combat->SecondaryWeapon);
+		}
 	}
 }
 

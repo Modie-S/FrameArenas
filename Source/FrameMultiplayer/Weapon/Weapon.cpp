@@ -1,5 +1,5 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
+// MaxiMod Games 2022
+// Modie Shakarchi
 
 #include "Weapon.h"
 #include "Components/SphereComponent.h"
@@ -13,7 +13,7 @@
 #include "FrameMultiplayer/PlayerController/FramePlayerController.h"
 #include "FrameMultiplayer/Components/CombatComponent.h"
 
-// Sets default values
+
 AWeapon::AWeapon()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
@@ -39,10 +39,8 @@ AWeapon::AWeapon()
 
 	PickupWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("PickupWidget"));
 	PickupWidget->SetupAttachment(RootComponent);
-
 }
 
-// Called when the game starts or when spawned
 void AWeapon::BeginPlay()
 {
 	Super::BeginPlay();
@@ -62,15 +60,12 @@ void AWeapon::BeginPlay()
 	}
 }
 
-
-// Called every frame
 void AWeapon::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
 
 }
-
 
 void AWeapon::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
@@ -79,7 +74,6 @@ void AWeapon::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeP
 	DOREPLIFETIME(AWeapon, WeaponState);
 	DOREPLIFETIME(AWeapon, Ammo);
 }
-
 
 void AWeapon::OnSphereOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
@@ -90,7 +84,6 @@ void AWeapon::OnSphereOverlap(UPrimitiveComponent* OverlappedComponent, AActor* 
 	}
 }
 
-
 void AWeapon::OnSphereEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
 	AFrameCharacter* FrameCharacter = Cast<AFrameCharacter>(OtherActor);
@@ -100,63 +93,72 @@ void AWeapon::OnSphereEndOverlap(UPrimitiveComponent* OverlappedComponent, AActo
 	}
 }
 
-
 void AWeapon::SetWeaponState(EWeaponState State)
 {
 	WeaponState = State;
-	switch (WeaponState)
-	{
-		case EWeaponState::EWS_Equipped:
-			ShowPickupWidget(false);
-			AreaSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-			WeaponMesh->SetSimulatePhysics(false);
-			WeaponMesh->SetEnableGravity(false);
-			WeaponMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-			EnableCustomDepth(false);
-			break;
-		case EWeaponState::EWS_Dropped:
-			if (HasAuthority())
-			{
-				AreaSphere->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-			}
-			WeaponMesh->SetSimulatePhysics(true);
-			WeaponMesh->SetEnableGravity(true);
-			WeaponMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-			WeaponMesh->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Block);
-			WeaponMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Ignore);
-			WeaponMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
-			
-			WeaponMesh->SetCustomDepthStencilValue(CUSTOM_DEPTH_TEAL);
-			WeaponMesh->MarkRenderStateDirty();
-			EnableCustomDepth(true);
-			break;
-	}
+	OnWeaponStateSet();
 }
 
+void AWeapon::OnEquipped()
+{
+	ShowPickupWidget(false);
+	AreaSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	WeaponMesh->SetSimulatePhysics(false);
+	WeaponMesh->SetEnableGravity(false);
+	WeaponMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	EnableCustomDepth(false);
+}
 
-void AWeapon::OnRep_WeaponState()
+void AWeapon::OnDropped()
+{
+	if (HasAuthority())
+	{
+		AreaSphere->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	}
+	
+	WeaponMesh->SetSimulatePhysics(true);
+	WeaponMesh->SetEnableGravity(true);
+	WeaponMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	WeaponMesh->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Block);
+	WeaponMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Ignore);
+	WeaponMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
+			
+	WeaponMesh->SetCustomDepthStencilValue(CUSTOM_DEPTH_TEAL);
+	WeaponMesh->MarkRenderStateDirty();
+	EnableCustomDepth(true);
+}
+
+void AWeapon::OnEquippedSecondary()
+{
+	ShowPickupWidget(false);
+	AreaSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	WeaponMesh->SetSimulatePhysics(false);
+	WeaponMesh->SetEnableGravity(false);
+	WeaponMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+	EnableCustomDepth(false);
+}
+
+void AWeapon::OnWeaponStateSet()
 {
 	switch (WeaponState)
 	{
 		case EWeaponState::EWS_Equipped:
-			ShowPickupWidget(false);
-			WeaponMesh->SetSimulatePhysics(false);
-			WeaponMesh->SetEnableGravity(false);
-			WeaponMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-			EnableCustomDepth(false);
+			OnEquipped();
+			break;
+		case EWeaponState::EWS_EquippedSecondary:
+			OnEquippedSecondary();
 			break;
 		case EWeaponState::EWS_Dropped:
-			WeaponMesh->SetSimulatePhysics(true);
-			WeaponMesh->SetEnableGravity(true);
-			WeaponMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-			
-			WeaponMesh->SetCustomDepthStencilValue(CUSTOM_DEPTH_TEAL);
-			WeaponMesh->MarkRenderStateDirty();
-			EnableCustomDepth(true);
+			OnDropped();
 			break;
 	}
 }
 
+void AWeapon::OnRep_WeaponState()
+{
+	OnWeaponStateSet();
+}
 
 void AWeapon::ShowPickupWidget(bool bShowWidget)
 {
@@ -204,13 +206,11 @@ void AWeapon::Dropped()
 	FrameOwnerController = nullptr;
 }
 
-
 void AWeapon::AddAmmo(int32 AmmoAdded)
 {
 	Ammo = FMath::Clamp(Ammo - AmmoAdded, 0, MagCapacity);
 	SetHUDAmmo();
 }
-
 
 void AWeapon::SetHUDAmmo()
 {
@@ -225,13 +225,11 @@ void AWeapon::SetHUDAmmo()
 	}
 }
 
-
 void AWeapon::UseRound()
 {
 	Ammo = FMath::Clamp(Ammo - 1, 0, MagCapacity);
 	SetHUDAmmo();
 }
-
 
 void AWeapon::OnRep_Ammo()
 {
@@ -245,7 +243,6 @@ void AWeapon::OnRep_Ammo()
 	SetHUDAmmo();
 }
 
-
 void AWeapon::OnRep_Owner()
 {
 	Super::OnRep_Owner();
@@ -256,23 +253,23 @@ void AWeapon::OnRep_Owner()
 	}
 	else
 	{
-		SetHUDAmmo();
-	}
-	
+		FrameOwnerCharacter = FrameOwnerCharacter == nullptr ? Cast<AFrameCharacter>(Owner) : FrameOwnerCharacter;
+		if (FrameOwnerCharacter && FrameOwnerCharacter->GetEquippedWeapon() && FrameOwnerCharacter->GetEquippedWeapon() == this)
+		{
+			SetHUDAmmo();
+		}
+	}	
 }
-
 
 bool AWeapon::IsEmpty()
 {
 	return Ammo <= 0;
 }
 
-
 bool AWeapon::IsFull()
 {
 	return Ammo == MagCapacity;
 }
-
 
 void AWeapon::EnableCustomDepth(bool bEnable)
 {

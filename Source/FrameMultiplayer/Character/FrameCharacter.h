@@ -33,7 +33,12 @@ public:
 	void PlayElimMontage();
 	void PlayGrenadeThrowMontage();
 	void Elim();
+	
 	void UpdateHUDHealth();
+	void UpdateHUDShield();
+	void UpdateHUDAmmo();
+	void SpawnDefaultWeapon();
+	
 	UFUNCTION(NetMulticast, Reliable)
 	void MulticastElim();
 	virtual void Destroyed() override;
@@ -64,6 +69,8 @@ protected:
 	void FireButtonReleased();
 	void PlayHitReactMontage();
 	void ThrowButtonPressed();
+	void DropOrDestroy(AWeapon* Weapon);
+	void DropOrDestroyWeapons();
 	
 	
 	UFUNCTION()
@@ -102,7 +109,6 @@ private:
 	//
 	// Animation Montages
 	//
-
 	UPROPERTY(EditAnywhere, Category = Combat)
 	class UAnimMontage* FireWeaponMontage;
 	
@@ -126,7 +132,6 @@ private:
 	//
 	// Player Health
 	//
-
 	UPROPERTY(EditAnywhere, Category = "Player Stats")
 	float MaxHealth = 100.f;
 	
@@ -135,6 +140,18 @@ private:
 
 	UFUNCTION()
 	void OnRep_Health(float LastHealth);
+
+	//
+	// Player Shield
+	//
+	UPROPERTY(EditAnywhere, Category = "Player Stats")
+	float MaxShield = 100.f;
+
+	UPROPERTY(ReplicatedUsing = OnRep_Shield, EditAnywhere, Category = "Player Stats")
+	float Shield = 0.f;
+
+	UFUNCTION()
+	void OnRep_Shield(float LastShield);
 
 	UPROPERTY()
 	class AFramePlayerController* FramePlayerController;
@@ -151,7 +168,6 @@ private:
 	//
 	// Dissolve FX
 	//
-
 	UPROPERTY(VisibleAnywhere)
 	UTimelineComponent* DissolveTimeline;
 
@@ -175,7 +191,6 @@ private:
 	//
 	// Elim Drone
 	//
-
 	UPROPERTY(EditAnywhere)
 	UParticleSystem* ElimDroneEffect;
 
@@ -191,10 +206,14 @@ private:
 	//
 	// Grenade
 	//
-
 	UPROPERTY(VisibleAnywhere)
 	UStaticMeshComponent* AttachedGrenade;
 
+	//
+	// Default Weapon - player starts with this
+	//
+	UPROPERTY(EditAnywhere)
+	TSubclassOf<AWeapon> DefaultWeaponClass;
 
 
 public:
@@ -210,6 +229,9 @@ public:
 	FORCEINLINE float GetHealth() const { return Health; }
 	FORCEINLINE void SetHealth(float Amount) { Health = Amount; }
 	FORCEINLINE float GetMaxHealth() const { return MaxHealth; }
+	FORCEINLINE float GetShield() const { return Shield; }
+	FORCEINLINE void SetShield(float Amount) { Shield = Amount; }
+	FORCEINLINE float GetMaxShield() const { return MaxShield; } 
 	ECombatState GetCombatState() const;
 	FORCEINLINE UCombatComponent* GetCombat() const { return Combat; }
 	FORCEINLINE bool GetDisableGameplay() const { return bDisableGameplay; }

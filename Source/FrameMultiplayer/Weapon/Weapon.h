@@ -1,4 +1,6 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// MaxiMod Games 2022
+// Modie Shakarchi
+
 
 #pragma once
 
@@ -12,10 +14,10 @@ enum class EWeaponState : uint8
 {
 	EWS_Initial UMETA(DisplayName = "Initial State"),
 	EWS_Equipped UMETA(DisplayName = "Equipped"),
+	EWS_EquippedSecondary UMETA(DisplayName = "EquippedSecondary"),
 	EWS_Dropped UMETA(DisplayName = "Dropped"),
 
 	EWS_MAX UMETA(DisplayName = "DefaultMAX")
-
 };
 
 UCLASS()
@@ -24,10 +26,9 @@ class FRAMEMULTIPLAYER_API AWeapon : public AActor
 	GENERATED_BODY()
 	
 public:	
-	// Sets default values for this actor's properties
+
 	AWeapon();
 
-	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void OnRep_Owner() override;
@@ -63,7 +64,6 @@ public:
 	//
 	// Automatic Fire
 	//
-	
 	UPROPERTY(EditAnywhere, Category = Combat)
 	float FireDelay = 0.15f;
 
@@ -76,12 +76,17 @@ public:
 	//
 	// Enable or disable Custom Depth
 	//
-
 	void EnableCustomDepth(bool bEnable);
+
+	bool bDestroyWeapon = false;
 	
 protected:
-	// Called when the game starts or when spawned
+
 	virtual void BeginPlay() override;
+	virtual void OnWeaponStateSet();
+	virtual void OnEquipped();
+	virtual void OnDropped();
+	virtual void OnEquippedSecondary();
 
 	UFUNCTION()
 	virtual void OnSphereOverlap(
@@ -140,10 +145,6 @@ private:
 
 	UPROPERTY(EditAnywhere)
 	EWeaponType WeaponType;
-
-	
-
-
 
 public:	
 	void SetWeaponState(EWeaponState State);

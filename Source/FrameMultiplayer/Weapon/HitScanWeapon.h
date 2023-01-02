@@ -1,4 +1,5 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// MaxiMod Games 2023
+// Modie Shakarchi
 
 #pragma once
 
@@ -18,9 +19,9 @@ public:
 
 	virtual void Fire(const FVector& HitTarget) override;
 
+
 protected:
 
-	FVector TraceEndScatter(const FVector& TraceStart, const FVector& HitTarget);
 	void WeaponTraceHit(const FVector& TraceStart, const FVector& HitTarget, FHitResult& OutHit);
 
 	UPROPERTY(EditAnywhere)
@@ -39,19 +40,6 @@ private:
 
 	UPROPERTY(EditAnywhere)
 	UParticleSystem* BeamParticles;
-
-	//
-	// Trace End Scatter
-	//
-
-	UPROPERTY(EditAnywhere, Category = "Weapon Scatter")
-	float DistanceToSphere = 800.f;
-
-	UPROPERTY(EditAnywhere, Category = "Weapon Scatter")
-	float SphereRadius = 75.f;
-
-	UPROPERTY(EditAnywhere, Category = "Weapon Scatter")
-	bool bUseScatter = false;
 
 	UPROPERTY(EditAnywhere)
 	UParticleSystem* MuzzleFlash;

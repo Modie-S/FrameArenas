@@ -20,6 +20,16 @@ enum class EWeaponState : uint8
 	EWS_MAX UMETA(DisplayName = "DefaultMAX")
 };
 
+UENUM(BlueprintType)
+enum class EFireType : uint8
+{
+	EFT_HitScan UMETA(DisplayName = "Hit Scan Weapon"),
+	EFT_Projectile UMETA(DisplayName = "Projectile Weapon"),
+	EFT_Shotgun UMETA(DisplayName = "Shotgun Weapon"),
+
+	EFT_MAX UMETA(DisplayName = "DefaultMAX")
+};
+
 UCLASS()
 class FRAMEMULTIPLAYER_API AWeapon : public AActor
 {
@@ -79,6 +89,14 @@ public:
 	void EnableCustomDepth(bool bEnable);
 
 	bool bDestroyWeapon = false;
+
+	UPROPERTY(EditAnywhere)
+	EFireType FireType;
+
+	UPROPERTY(EditAnywhere, Category = "Weapon Scatter")
+	bool bUseScatter = false;
+
+	FVector TraceEndScatter(const FVector& HitTarget);
 	
 protected:
 
@@ -104,6 +122,16 @@ protected:
 		UPrimitiveComponent* OtherComp, 
 		int32 OtherBodyIndex);
 
+	//
+	// Trace End Scatter
+	//
+
+	UPROPERTY(EditAnywhere, Category = "Weapon Scatter")
+	float DistanceToSphere = 800.f;
+
+	UPROPERTY(EditAnywhere, Category = "Weapon Scatter")
+	float SphereRadius = 75.f;
+
 private:
 
 	UPROPERTY(VisibleAnywhere, Category = "Weapon Properties")
@@ -127,16 +155,22 @@ private:
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<class ACasing> CasingClass;
 
-	UPROPERTY(EditAnywhere, ReplicatedUsing = OnRep_Ammo)
+	UPROPERTY(EditAnywhere)
 	int32 Ammo;
 
-	UFUNCTION() 
-	void OnRep_Ammo();
+	UFUNCTION(Client, Reliable)
+	void ClientUpdateAmmo(int32 ServerAmmo);
+
+	UFUNCTION(Client, Reliable)
+	void ClientAddAmmo(int32 AmmoToAdd);
 
 	void UseRound();
 
 	UPROPERTY(EditAnywhere)
 	int32 MagCapacity;
+
+	// No of unprocessed server ammo requests - incremented in UseRound; decremented in ClientUpdateAmmo
+	int32 Sequence = 0;
 
 	UPROPERTY()
 	class AFrameCharacter* FrameOwnerCharacter;
@@ -145,6 +179,8 @@ private:
 
 	UPROPERTY(EditAnywhere)
 	EWeaponType WeaponType;
+
+	
 
 public:	
 	void SetWeaponState(EWeaponState State);

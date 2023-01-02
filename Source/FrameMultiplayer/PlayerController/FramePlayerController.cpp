@@ -15,6 +15,7 @@
 #include "FrameMultiplayer/Components/CombatComponent.h"
 #include "FrameMultiplayer/GameState/FrameGameState.h"
 #include "FrameMultiplayer/PlayerState/FramePlayerState.h"
+#include "Components/Image.h"
 
 
 void AFramePlayerController::BeginPlay()
@@ -39,6 +40,40 @@ void AFramePlayerController::Tick(float DeltaTime)
     SetHUDTime();
     CheckTimeSync(DeltaTime);
     PollInit();
+
+    CheckPing(DeltaTime);
+}
+
+void AFramePlayerController::CheckPing(float DeltaTime)
+{
+    HighPingRunTime += DeltaTime;
+    if (HighPingRunTime > CheckPingFrequency)
+    {
+        PlayerState = PlayerState == nullptr ? GetPlayerState<APlayerState>() : PlayerState;
+        if (PlayerState)
+        {
+            if (PlayerState->GetPing() * 4 > HighPingThreshold) // Compressed time - divided by 4 to get uint8, multiply by 4 to get accurate ping
+            {
+                HighPingWarning();
+                HighPingAnimationRunTime = 0.f;
+            }
+        }
+
+        HighPingRunTime = 0.f;
+    }
+
+    bool HighPingWarningAnimationPlaying = FrameHUD && 
+        FrameHUD->CharacterOverlay && 
+        FrameHUD->CharacterOverlay->HighPingWarning && 
+        FrameHUD->CharacterOverlay->IsAnimationPlaying(FrameHUD->CharacterOverlay->HighPingWarning);
+    if (HighPingWarningAnimationPlaying)
+    {
+        HighPingAnimationRunTime += DeltaTime;
+        if (HighPingAnimationRunTime > HighPingWarningDuration)
+        {
+            StopHighPingWarning();
+        }
+    }
 }
 
 void AFramePlayerController::CheckTimeSync(float DeltaTime)
@@ -48,6 +83,44 @@ void AFramePlayerController::CheckTimeSync(float DeltaTime)
     {
         ServerRequestServerTime(GetWorld()->GetTimeSeconds());
         TimeSyncRunningTime = 0.f;
+    }
+}
+
+void AFramePlayerController::HighPingWarning()
+{
+    FrameHUD = FrameHUD == nullptr ? Cast<AFrameHUD>(GetHUD()) : FrameHUD;
+    
+    bool bHUDValid = FrameHUD && 
+                FrameHUD->CharacterOverlay && 
+                FrameHUD->CharacterOverlay->HighPingIcon && 
+                FrameHUD->CharacterOverlay->HighPingWarning;
+    
+    if (bHUDValid)
+    {
+        FrameHUD->CharacterOverlay->HighPingIcon->SetOpacity(1.f);
+        FrameHUD->CharacterOverlay->PlayAnimation(
+                        FrameHUD->CharacterOverlay->HighPingWarning,
+                        0.f,
+                        5);
+    }
+}
+
+void AFramePlayerController::StopHighPingWarning()
+{
+    FrameHUD = FrameHUD == nullptr ? Cast<AFrameHUD>(GetHUD()) : FrameHUD;
+    
+    bool bHUDValid = FrameHUD && 
+                FrameHUD->CharacterOverlay && 
+                FrameHUD->CharacterOverlay->HighPingIcon && 
+                FrameHUD->CharacterOverlay->HighPingWarning;
+    
+    if (bHUDValid)
+    {
+        FrameHUD->CharacterOverlay->HighPingIcon->SetOpacity(0.f);
+        if (FrameHUD->CharacterOverlay->IsAnimationPlaying(FrameHUD->CharacterOverlay->HighPingWarning))
+        {
+             FrameHUD->CharacterOverlay->StopAnimation(FrameHUD->CharacterOverlay->HighPingWarning);
+        }
     }
 }
 

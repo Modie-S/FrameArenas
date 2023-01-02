@@ -1,4 +1,4 @@
-// MaxiMod Games 2022
+// MaxiMod Games 2023
 // Modie Shakarchi
 
 #include "Weapon.h"
@@ -12,6 +12,7 @@
 #include "Engine/SkeletalMeshSocket.h"
 #include "FrameMultiplayer/PlayerController/FramePlayerController.h"
 #include "FrameMultiplayer/Components/CombatComponent.h"
+#include "Kismet/KismetMathLibrary.h"
 
 
 AWeapon::AWeapon()
@@ -44,15 +45,12 @@ AWeapon::AWeapon()
 void AWeapon::BeginPlay()
 {
 	Super::BeginPlay();
-	
 
-	if (HasAuthority()) // If player has server authority, this statement is true and if statement executed
-	{
-		AreaSphere->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-		AreaSphere->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
-		AreaSphere->OnComponentBeginOverlap.AddDynamic(this, &AWeapon::OnSphereOverlap);
-		AreaSphere->OnComponentEndOverlap.AddDynamic(this, &AWeapon::OnSphereEndOverlap);
-	}
+	AreaSphere->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	AreaSphere->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
+	AreaSphere->OnComponentBeginOverlap.AddDynamic(this, &AWeapon::OnSphereOverlap);
+	AreaSphere->OnComponentEndOverlap.AddDynamic(this, &AWeapon::OnSphereEndOverlap);
+	
 	
 	if (PickupWidget)
 	{
@@ -72,7 +70,7 @@ void AWeapon::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeP
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(AWeapon, WeaponState);
-	DOREPLIFETIME(AWeapon, Ammo);
+	
 }
 
 void AWeapon::OnSphereOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -193,6 +191,7 @@ void AWeapon::Fire(const FVector& HitTarget)
 			}
 		}
 	}
+	
 	UseRound();
 }
 
@@ -208,7 +207,44 @@ void AWeapon::Dropped()
 
 void AWeapon::AddAmmo(int32 AmmoAdded)
 {
-	Ammo = FMath::Clamp(Ammo - AmmoAdded, 0, MagCapacity);
+	Ammo = FMath::Clamp(Ammo + AmmoAdded, 0, MagCapacity);
+	SetHUDAmmo();
+	ClientAddAmmo(AmmoAdded);
+}
+
+void AWeapon::UseRound()
+{
+	Ammo = FMath::Clamp(Ammo - 1, 0, MagCapacity);
+	SetHUDAmmo();
+	if (HasAuthority())
+	{
+		ClientUpdateAmmo(Ammo);
+	}
+	else
+	{
+		++Sequence;
+	}
+}
+
+void AWeapon::ClientUpdateAmmo_Implementation(int32 ServerAmmo)
+{
+	if (HasAuthority()) return;
+	Ammo = ServerAmmo;
+	--Sequence;
+	Ammo -= Sequence;
+	SetHUDAmmo();
+}
+
+void AWeapon::ClientAddAmmo_Implementation(int32 AmmoAdded)
+{
+	if (HasAuthority()) return;
+	Ammo = FMath::Clamp(Ammo + AmmoAdded, 0, MagCapacity);
+	FrameOwnerCharacter = FrameOwnerCharacter == nullptr ? Cast<AFrameCharacter>(GetOwner()) : FrameOwnerCharacter;
+	if (FrameOwnerCharacter && FrameOwnerCharacter->GetCombat() && IsFull())
+	{
+		FrameOwnerCharacter->GetCombat()->JumpToShotgunEnd();
+	}
+
 	SetHUDAmmo();
 }
 
@@ -223,24 +259,6 @@ void AWeapon::SetHUDAmmo()
 			FrameOwnerController->SetHUDWeaponAmmo(Ammo);
 		}
 	}
-}
-
-void AWeapon::UseRound()
-{
-	Ammo = FMath::Clamp(Ammo - 1, 0, MagCapacity);
-	SetHUDAmmo();
-}
-
-void AWeapon::OnRep_Ammo()
-{
-	FrameOwnerCharacter = FrameOwnerCharacter == nullptr ? Cast<AFrameCharacter>(GetOwner()) : FrameOwnerCharacter;
-	
-	if (FrameOwnerCharacter && FrameOwnerCharacter->GetCombat() && IsFull())
-	{
-		FrameOwnerCharacter->GetCombat()->JumpToShotgunEnd();
-	}
-
-	SetHUDAmmo();
 }
 
 void AWeapon::OnRep_Owner()
@@ -279,7 +297,48 @@ void AWeapon::EnableCustomDepth(bool bEnable)
 	}
 }
 
+FVector AWeapon::TraceEndScatter(const FVector& HitTarget)
+{
+    const USkeletalMeshSocket* MuzzleFlashSocket = GetWeaponMesh()->GetSocketByName("MuzzleFlash_Socket_01");
+    if (MuzzleFlashSocket == nullptr) return FVector();
+    
+    const FTransform SocketTransform = MuzzleFlashSocket->GetSocketTransform(GetWeaponMesh());
+    const FVector TraceStart = SocketTransform.GetLocation() + 15.f;
+    
+    const FVector ToTargetNormalized = (HitTarget - TraceStart).GetSafeNormal();
+    const FVector SphereCenter = TraceStart + ToTargetNormalized * DistanceToSphere;
+    const FVector RandomVector = UKismetMathLibrary::RandomUnitVector() * FMath::FRandRange(0.f, SphereRadius);
+    const FVector EndLoc = SphereCenter + RandomVector;
+    const FVector ToEndLoc = EndLoc - TraceStart;
 
+    /*DrawDebugSphere(
+        GetWorld(),
+        SphereCenter,
+        SphereRadius,
+        12,
+        FColor::Red,
+        true
+    );
+
+    DrawDebugSphere(
+        GetWorld(),
+        EndLoc,
+        4.f,
+        12,
+        FColor::Orange,
+        true
+    );
+
+    DrawDebugLine(
+        GetWorld(),
+        TraceStart,
+        FVector(TraceStart + ToEndLoc * TRACE_LENGTH / ToEndLoc.Size()),
+        FColor::Cyan,
+        true
+    );*/
+
+    return FVector(TraceStart + ToEndLoc * TRACE_LENGTH / ToEndLoc.Size());
+}
 
 
 

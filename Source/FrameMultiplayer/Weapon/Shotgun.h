@@ -1,4 +1,5 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// MaxiMod Games 2023
+// Modie Shakarchi
 
 #pragma once
 
@@ -16,11 +17,13 @@ class FRAMEMULTIPLAYER_API AShotgun : public AHitScanWeapon
 
 public:
 
-	virtual void Fire(const FVector& HitTarget) override;
+	virtual void FireShotgun(const TArray<FVector_NetQuantize>& HitTargets);
+
+	void ShotgunTraceEndScatter(const FVector& HitTarget, TArray<FVector_NetQuantize>& HitTargets);
 
 private:
 
 	UPROPERTY(EditAnywhere, Category = "Weapon Scatter")
-	uint32 NumberOfBullets = 10;
+	uint32 NumberOfBullets = 8;
 	
 };

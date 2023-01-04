@@ -49,7 +49,57 @@ public:
 	UFUNCTION(BlueprintImplementableEvent)
 	void ShowSniperScope(bool bShowScope);
 
-	
+	//
+	// Hit Boxes used for Server-Side Rewind
+	//
+
+	UPROPERTY(EditAnywhere)
+	class UBoxComponent* Head;
+
+	UPROPERTY(EditAnywhere)
+	UBoxComponent* Pelvis;
+
+	UPROPERTY(EditAnywhere)
+	UBoxComponent* Spine_02;
+
+	UPROPERTY(EditAnywhere)
+	UBoxComponent* Spine_03;
+
+	UPROPERTY(EditAnywhere)
+	UBoxComponent* UpperArm_l;
+
+	UPROPERTY(EditAnywhere)
+	UBoxComponent* UpperArm_r;
+
+	UPROPERTY(EditAnywhere)
+	UBoxComponent* LowerArm_l;
+
+	UPROPERTY(EditAnywhere)
+	UBoxComponent* LowerArm_r;
+
+	UPROPERTY(EditAnywhere)
+	UBoxComponent* Hand_l;
+
+	UPROPERTY(EditAnywhere)
+	UBoxComponent* Hand_r;
+
+	UPROPERTY(EditAnywhere)
+	UBoxComponent* Thigh_l;
+
+	UPROPERTY(EditAnywhere)
+	UBoxComponent* Thigh_r;
+
+	UPROPERTY(EditAnywhere)
+	UBoxComponent* Calf_l;
+
+	UPROPERTY(EditAnywhere)
+	UBoxComponent* Calf_r;
+
+	UPROPERTY(EditAnywhere)
+	UBoxComponent* Foot_l;
+
+	UPROPERTY(EditAnywhere)
+	UBoxComponent* Foot_r;
 
 protected:
 	
@@ -238,5 +288,6 @@ public:
 	FORCEINLINE UAnimMontage* GetReloadMontage() const { return ReloadMontage; }
 	FORCEINLINE UStaticMeshComponent* GetAttachedGrenade() const { return AttachedGrenade; }
 	FORCEINLINE UBuffComponent* GetBuff() const { return Buff; }
+	bool IsLocallyReloading();
 };
 

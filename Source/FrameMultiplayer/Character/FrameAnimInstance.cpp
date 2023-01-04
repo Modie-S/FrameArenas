@@ -73,6 +73,10 @@ void UFrameAnimInstance::NativeUpdateAnimation(float DeltaTime)
     }
 
     bUseFABRIK = FrameCharacter->GetCombatState() == ECombatState::ECS_Unoccupied;
+    if (FrameCharacter->IsLocallyControlled() && FrameCharacter->GetCombatState() != ECombatState::ECS_Throwing)
+    {
+        bUseFABRIK = !FrameCharacter->IsLocallyReloading();
+    }
     bUseAimOffsets = FrameCharacter->GetCombatState() == ECombatState::ECS_Unoccupied && !FrameCharacter->GetDisableGameplay();
     bTransformRightHand = FrameCharacter->GetCombatState() == ECombatState::ECS_Unoccupied && !FrameCharacter->GetDisableGameplay();
     

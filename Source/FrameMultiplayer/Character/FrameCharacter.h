@@ -49,6 +49,37 @@ public:
 	UFUNCTION(BlueprintImplementableEvent)
 	void ShowSniperScope(bool bShowScope);
 
+	UPROPERTY()
+	TMap<FName, class UBoxComponent*> HitCollisionBoxes;
+
+protected:
+	
+	// Called when the game starts or when spawned
+	virtual void BeginPlay() override;
+
+	void MoveForward(float Value);
+	void MoveRight(float Value);
+	void Turn(float Value);
+	void LookUp(float Value);
+	void EquipButtonPressed();
+	void CrouchButtonPressed();
+	void ReloadButtonPressed();
+	void AimButtonPressed();
+	void AimButtonReleased();
+	void FireButtonPressed();
+	void FireButtonReleased();
+	void PlayHitReactMontage();
+	void ThrowButtonPressed();
+	void DropOrDestroy(AWeapon* Weapon);
+	void DropOrDestroyWeapons();
+	
+	
+	UFUNCTION()
+	void ReceiveDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType, class AController* InstigatorController, AActor* DamageCauser);
+	
+	// Poll for relevant classes and initialize HUD
+	void PollInit();
+
 	//
 	// Hit Boxes used for Server-Side Rewind
 	//
@@ -101,35 +132,6 @@ public:
 	UPROPERTY(EditAnywhere)
 	UBoxComponent* Foot_r;
 
-protected:
-	
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
-
-	void MoveForward(float Value);
-	void MoveRight(float Value);
-	void Turn(float Value);
-	void LookUp(float Value);
-	void EquipButtonPressed();
-	void CrouchButtonPressed();
-	void ReloadButtonPressed();
-	void AimButtonPressed();
-	void AimButtonReleased();
-	void FireButtonPressed();
-	void FireButtonReleased();
-	void PlayHitReactMontage();
-	void ThrowButtonPressed();
-	void DropOrDestroy(AWeapon* Weapon);
-	void DropOrDestroyWeapons();
-	
-	
-	UFUNCTION()
-	void ReceiveDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType, class AController* InstigatorController, AActor* DamageCauser);
-	
-	// Poll for relevant classes and initialize HUD
-	void PollInit();
-
-	
 private:
 
 	UPROPERTY(VisibleAnywhere, Category = Camera)
@@ -147,11 +149,18 @@ private:
 	UFUNCTION()
 	void OnRep_OverlappingWeapon(AWeapon* LastWeapon);
 
+	//
+	// Components
+	//
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	class UCombatComponent* Combat;
 
 	UPROPERTY(VisibleAnywhere)
 	class UBuffComponent* Buff;
+
+	UPROPERTY(VisibleAnywhere)
+	class ULagCompensationComponent* LagCompensation;
 
 	UFUNCTION(Server, Reliable)
 	void ServerEquipButtonPressed();
@@ -289,5 +298,6 @@ public:
 	FORCEINLINE UStaticMeshComponent* GetAttachedGrenade() const { return AttachedGrenade; }
 	FORCEINLINE UBuffComponent* GetBuff() const { return Buff; }
 	bool IsLocallyReloading();
+	FORCEINLINE ULagCompensationComponent* GetLagComp() const { return LagCompensation; }
 };
 

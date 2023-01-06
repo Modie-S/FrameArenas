@@ -21,5 +21,8 @@ public:
 private:
 
 	UPROPERTY(EditAnywhere)
-	TSubclassOf<class AProjectile> ProjectileClass;
+	TSubclassOf<class AProjectile> ProjectileClass; // Replicates
+
+	UPROPERTY(EditAnywhere)
+	TSubclassOf<AProjectile> ServerSideRewindProjectileClass; // Does NOT replicate
 };

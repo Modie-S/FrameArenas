@@ -1,4 +1,5 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// MaxiMod Games 2023
+// Modie Shakarchi
 
 #pragma once
 
@@ -13,6 +14,8 @@ UCLASS()
 class FRAMEMULTIPLAYER_API URocketMovementComponent : public UProjectileMovementComponent
 {
 	GENERATED_BODY()
+
+
 
 protected:
 

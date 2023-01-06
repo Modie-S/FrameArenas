@@ -132,6 +132,17 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Weapon Scatter")
 	float SphereRadius = 75.f;
 
+	UPROPERTY(EditAnywhere)
+	float Damage = 15.f;
+
+	UPROPERTY(EditAnywhere)
+	bool bUseServerSideRewind = false;
+	
+	UPROPERTY()
+	class AFrameCharacter* FrameOwnerCharacter;
+	UPROPERTY()
+	class AFramePlayerController* FrameOwnerController;
+	
 private:
 
 	UPROPERTY(VisibleAnywhere, Category = "Weapon Properties")
@@ -172,10 +183,7 @@ private:
 	// No of unprocessed server ammo requests - incremented in UseRound; decremented in ClientUpdateAmmo
 	int32 Sequence = 0;
 
-	UPROPERTY()
-	class AFrameCharacter* FrameOwnerCharacter;
-	UPROPERTY()
-	class AFramePlayerController* FrameOwnerController;
+	
 
 	UPROPERTY(EditAnywhere)
 	EWeaponType WeaponType;
@@ -193,4 +201,5 @@ public:
 	FORCEINLINE EWeaponType GetWeaponType() const { return WeaponType; }
 	FORCEINLINE int32 GetAmmo() const { return Ammo; }
 	FORCEINLINE int32 GetMagCapacity() const { return MagCapacity; }
+	FORCEINLINE float GetDamage() const { return Damage; }
 };

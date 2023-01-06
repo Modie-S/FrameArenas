@@ -21,7 +21,6 @@ struct FBoxInformation // Information for particular box for given time
 
 	UPROPERTY()
 	FVector BoxExtent;
-
 };
 
 
@@ -36,6 +35,33 @@ struct FFramePackage
 	UPROPERTY()
 	TMap<FName, FBoxInformation> HitBoxInfo;
 
+	UPROPERTY()
+	AFrameCharacter* Character;
+};
+
+USTRUCT(BlueprintType)
+struct FServerSideRewindResult
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	bool bHitConfirm;
+
+	UPROPERTY()
+	bool bHeadShot;
+};
+
+USTRUCT(BlueprintType)
+struct FShotgunServerSideRewindResult
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	TMap<AFrameCharacter*, uint32> HeadShots;
+
+	UPROPERTY()
+	TMap<AFrameCharacter*, uint32> BodyShots;
+	
 };
 
 
@@ -52,18 +78,73 @@ public:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 	void ShowFramePackage(const FFramePackage& Package, const FColor Color);
 	
-	void ServerSideRewind(class AFrameCharacter* HitCharacter, 
-					const FVector_NetQuantize& TraceStart, 
-					const FVector_NetQuantize HitLocation, 
-					float HitTime
-					);
+	FServerSideRewindResult ServerSideRewind(
+		class AFrameCharacter* HitCharacter, 
+		const FVector_NetQuantize& TraceStart, 
+		const FVector_NetQuantize HitLocation, 
+		float HitTime
+		);
+	
+	FShotgunServerSideRewindResult ShotgunServerSideRewind(
+		const TArray<AFrameCharacter*>& HitCharacters, 
+		const FVector_NetQuantize& TraceStart, 
+		const TArray<FVector_NetQuantize>& HitLocations, 
+		float HitTime
+		);
+	
+	UFUNCTION(Server, Reliable)
+	void ServerScoreRequest(
+		AFrameCharacter* HitCharacter,
+		const FVector_NetQuantize& TraceStart,
+		const FVector_NetQuantize& HitLocation,
+		float HitTime,
+		class AWeapon* DamageCauser
+		);
 
+	UFUNCTION(Server, Reliable)
+	void ShotgunServerScoreRequest(
+		const TArray<AFrameCharacter*>& HitCharacters, 
+		const FVector_NetQuantize& TraceStart, 
+		const TArray<FVector_NetQuantize>& HitLocations, 
+		float HitTime
+		);
 
 protected:
 	
 	virtual void BeginPlay() override;
 	void SaveFramePackage(FFramePackage& Package);
-	FFramePackage InterpBetweenFrames(const FFramePackage& OlderFrame, const FFramePackage& YoungerFrame, float HitTime);
+	
+	FFramePackage InterpBetweenFrames(
+			const FFramePackage& OlderFrame, 
+			const FFramePackage& YoungerFrame, 
+			float HitTime
+			);
+	
+	FServerSideRewindResult ConfirmHit(
+			const FFramePackage& Package, 
+			AFrameCharacter* HitCharacter, 
+			const FVector_NetQuantize& TraceStart, 
+			const FVector_NetQuantize& HitLocation
+			);
+
+	void CacheBoxPositions(AFrameCharacter* HitCharacter, FFramePackage& OutFramePackage);
+	void MoveBoxes(AFrameCharacter* HitCharacter, const FFramePackage& Package);
+	void ResetHitBoxes(AFrameCharacter* HitCharacter, const FFramePackage& Package);
+	void EnableCharacterMeshCollision(AFrameCharacter* HitCharacter, ECollisionEnabled::Type CollisionEnabled);
+	void SaveFramePackage();
+	FFramePackage GetFrameToCheck(AFrameCharacter* HitCharacter, float HitTime);
+	
+	//
+	// Shotgun SSR
+	//
+	
+
+	FShotgunServerSideRewindResult ShotgunConfirmHit(
+			const TArray<FFramePackage>& FramePackages,
+			const FVector_NetQuantize& TraceStart,
+			const TArray<FVector_NetQuantize>& HitLocations
+			);
+	
 
 private:
 

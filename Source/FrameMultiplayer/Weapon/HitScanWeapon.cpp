@@ -10,6 +10,8 @@
 #include "Sound/SoundCue.h"
 #include "DrawDebugHelpers.h"
 #include "WeaponTypes.h"
+#include "FrameMultiplayer/Components/LagCompensationComponent.h"
+#include "FrameMultiplayer/PlayerController/FramePlayerController.h"
 
 
 void AHitScanWeapon::Fire(const FVector& HitTarget)
@@ -33,13 +35,31 @@ void AHitScanWeapon::Fire(const FVector& HitTarget)
         AFrameCharacter* FrameCharacter = Cast<AFrameCharacter>(FireHit.GetActor());
         if (FrameCharacter && HasAuthority() && InstigatorController)
         {
-            UGameplayStatics::ApplyDamage(
-                FrameCharacter,
-                Damage,
-                InstigatorController,
-                this,
-                UDamageType::StaticClass()
-            );
+            if (HasAuthority() && !bUseServerSideRewind)
+            {
+                UGameplayStatics::ApplyDamage(
+                    FrameCharacter,
+                    Damage,
+                    InstigatorController,
+                    this,
+                    UDamageType::StaticClass()
+                ); 
+            }
+            if (!HasAuthority() && bUseServerSideRewind)
+            {
+                FrameOwnerCharacter = FrameOwnerCharacter == nullptr ? Cast<AFrameCharacter>(OwnerPawn) : FrameOwnerCharacter;
+                FrameOwnerController = FrameOwnerController == nullptr ? Cast<AFramePlayerController>(InstigatorController) : FrameOwnerController;
+                if (FrameOwnerController && FrameOwnerCharacter && FrameOwnerCharacter->GetLagComp() && FrameOwnerCharacter->IsLocallyControlled())
+                {
+                    FrameOwnerCharacter->GetLagComp()->ServerScoreRequest(
+                        FrameCharacter,
+                        Start,
+                        HitTarget,
+                        FrameOwnerController->GetServerTime() - FrameOwnerController->SingleTripTime,
+                        this
+                    );
+                }
+            }  
         }
         if (ImpactParticles)
         {

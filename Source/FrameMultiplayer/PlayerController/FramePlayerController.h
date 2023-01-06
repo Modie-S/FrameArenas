@@ -37,6 +37,8 @@ public:
 	void HandleMatchHasStarted();
 	void HandleCooldown();
 	
+	float SingleTripTime = 0;
+
 protected:
 
 	virtual void BeginPlay() override;
@@ -75,6 +77,8 @@ protected:
 	void StopHighPingWarning();
 	void CheckPing(float DeltaTime);
 
+
+	
 
 private:
 

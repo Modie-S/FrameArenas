@@ -5,10 +5,12 @@
 #include "Shotgun.h"
 #include "Engine/SkeletalMeshSocket.h"
 #include "FrameMultiplayer/Character/FrameCharacter.h"
+#include "FrameMultiplayer/PlayerController/FramePlayerController.h"
 #include "Kismet/GameplayStatics.h"
 #include "Particles/ParticleSystemComponent.h"
 #include "Sound/SoundCue.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "FrameMultiplayer/Components/LagCompensationComponent.h"
 
 
 void AShotgun::FireShotgun(const TArray<FVector_NetQuantize>& HitTargets)
@@ -67,17 +69,38 @@ void AShotgun::FireShotgun(const TArray<FVector_NetQuantize>& HitTargets)
 
         }
     
+        TArray<AFrameCharacter*> HitCharacters;       
         for (auto HitPair : HitMap)
         {
-            if (HitPair.Key && HasAuthority() && InstigatorController)
+            if (HitPair.Key && InstigatorController)
             {
-                UGameplayStatics::ApplyDamage(
-                    HitPair.Key,    // Character that was hit
-                    Damage * HitPair.Value, // Multiply damage to number of times hit
-                    InstigatorController,
-                    this,
-                    UDamageType::StaticClass()
+                if (HasAuthority() && !bUseServerSideRewind)
+                {
+                    UGameplayStatics::ApplyDamage(
+                        HitPair.Key,    // Character that was hit
+                        Damage * HitPair.Value, // Multiply damage to number of times hit
+                        InstigatorController,
+                        this,
+                        UDamageType::StaticClass()
                     );
+                }
+
+                HitCharacters.Add(HitPair.Key);               
+            }
+        }
+
+        if (!HasAuthority() && bUseServerSideRewind)
+        {
+            FrameOwnerCharacter = FrameOwnerCharacter == nullptr ? Cast<AFrameCharacter>(OwnerPawn) : FrameOwnerCharacter;
+            FrameOwnerController = FrameOwnerController == nullptr ? Cast<AFramePlayerController>(InstigatorController) : FrameOwnerController;
+            if (FrameOwnerController && FrameOwnerCharacter && FrameOwnerCharacter->GetLagComp() && FrameOwnerCharacter->IsLocallyControlled())
+            {
+                FrameOwnerCharacter->GetLagComp()->ShotgunServerScoreRequest(
+                        HitCharacters,
+                        Start,
+                        HitTargets,
+                        FrameOwnerController->GetServerTime() - FrameOwnerController->SingleTripTime
+                    );  
             }
         } 
     }

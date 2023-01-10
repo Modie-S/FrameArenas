@@ -52,10 +52,16 @@ void AFramePlayerController::CheckPing(float DeltaTime)
         PlayerState = PlayerState == nullptr ? GetPlayerState<APlayerState>() : PlayerState;
         if (PlayerState)
         {
+            UE_LOG(LogTemp, Warning, TEXT("PlayerState->GetPing() * 4: %d"), PlayerState->GetPing() * 4);
             if (PlayerState->GetPing() * 4 > HighPingThreshold) // Compressed time - divided by 4 to get uint8, multiply by 4 to get accurate ping
             {
                 HighPingWarning();
                 HighPingAnimationRunTime = 0.f;
+                ServerReportPingStatus(true);
+            }
+            else
+            {
+                ServerReportPingStatus(false);
             }
         }
 
@@ -74,6 +80,12 @@ void AFramePlayerController::CheckPing(float DeltaTime)
             StopHighPingWarning();
         }
     }
+}
+
+void AFramePlayerController::ServerReportPingStatus_Implementation(bool bHighPing)
+{
+    // Is ping too high to use SSR?
+    HighPingDelegate.Broadcast(bHighPing);
 }
 
 void AFramePlayerController::CheckTimeSync(float DeltaTime)

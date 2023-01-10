@@ -135,13 +135,16 @@ protected:
 	UPROPERTY(EditAnywhere)
 	float Damage = 15.f;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(Replicated, EditAnywhere)
 	bool bUseServerSideRewind = false;
 	
 	UPROPERTY()
 	class AFrameCharacter* FrameOwnerCharacter;
 	UPROPERTY()
 	class AFramePlayerController* FrameOwnerController;
+
+	UFUNCTION()
+	void OnPingTooHigh(bool bPingTooHigh);
 	
 private:
 

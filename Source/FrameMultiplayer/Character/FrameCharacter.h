@@ -28,8 +28,11 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void PostInitializeComponents() override;
+	
+	// Montages
 	void PlayFireMontage(bool bAiming);
 	void PlayReloadMontage();
+	void PlayWeaponSwapMontage();
 	void PlayElimMontage();
 	void PlayGrenadeThrowMontage();
 	void Elim();
@@ -51,6 +54,8 @@ public:
 
 	UPROPERTY()
 	TMap<FName, class UBoxComponent*> HitCollisionBoxes;
+
+	bool bFinishSwapping = false;
 
 protected:
 	
@@ -182,6 +187,10 @@ private:
 
 	UPROPERTY(EditAnywhere, Category = Combat)
 	UAnimMontage* GrenadeThrowMontage;
+
+	UPROPERTY(EditAnywhere, Category = Combat)
+	UAnimMontage* WeaponSwapMontage;
+
 
 	void HideCameraIfCharacterClose();
 

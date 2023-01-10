@@ -70,7 +70,13 @@ void AWeapon::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeP
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(AWeapon, WeaponState);
+	DOREPLIFETIME_CONDITION(AWeapon, bUseServerSideRewind, COND_OwnerOnly);
 	
+}
+
+void AWeapon::OnPingTooHigh(bool bPingTooHigh)
+{
+	bUseServerSideRewind = !bPingTooHigh;
 }
 
 void AWeapon::OnSphereOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -105,6 +111,16 @@ void AWeapon::OnEquipped()
 	WeaponMesh->SetEnableGravity(false);
 	WeaponMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	EnableCustomDepth(false);
+
+	FrameOwnerCharacter = FrameOwnerCharacter == nullptr ? Cast<AFrameCharacter>(GetOwner()) : FrameOwnerCharacter;
+	if (FrameOwnerCharacter && bUseServerSideRewind)
+	{
+		FrameOwnerController = FrameOwnerController == nullptr ? Cast<AFramePlayerController>(FrameOwnerCharacter->Controller) : FrameOwnerController;
+		if (FrameOwnerController && HasAuthority() && !FrameOwnerController->HighPingDelegate.IsBound())
+		{
+			FrameOwnerController->HighPingDelegate.AddDynamic(this, &AWeapon::OnPingTooHigh);
+		}	
+	}
 }
 
 void AWeapon::OnDropped()
@@ -124,6 +140,16 @@ void AWeapon::OnDropped()
 	WeaponMesh->SetCustomDepthStencilValue(CUSTOM_DEPTH_TEAL);
 	WeaponMesh->MarkRenderStateDirty();
 	EnableCustomDepth(true);
+
+	FrameOwnerCharacter = FrameOwnerCharacter == nullptr ? Cast<AFrameCharacter>(GetOwner()) : FrameOwnerCharacter;
+	if (FrameOwnerCharacter)
+	{
+		FrameOwnerController = FrameOwnerController == nullptr ? Cast<AFramePlayerController>(FrameOwnerCharacter->Controller) : FrameOwnerController;
+		if (FrameOwnerController && HasAuthority() && FrameOwnerController->HighPingDelegate.IsBound())
+		{
+			FrameOwnerController->HighPingDelegate.RemoveDynamic(this, &AWeapon::OnPingTooHigh);
+		}	
+	}
 }
 
 void AWeapon::OnEquippedSecondary()
@@ -135,6 +161,16 @@ void AWeapon::OnEquippedSecondary()
 	WeaponMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 	EnableCustomDepth(false);
+
+	FrameOwnerCharacter = FrameOwnerCharacter == nullptr ? Cast<AFrameCharacter>(GetOwner()) : FrameOwnerCharacter;
+	if (FrameOwnerCharacter)
+	{
+		FrameOwnerController = FrameOwnerController == nullptr ? Cast<AFramePlayerController>(FrameOwnerCharacter->Controller) : FrameOwnerController;
+		if (FrameOwnerController && HasAuthority() && FrameOwnerController->HighPingDelegate.IsBound())
+		{
+			FrameOwnerController->HighPingDelegate.RemoveDynamic(this, &AWeapon::OnPingTooHigh);
+		}	
+	}
 }
 
 void AWeapon::OnWeaponStateSet()

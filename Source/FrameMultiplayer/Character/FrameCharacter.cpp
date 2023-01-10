@@ -269,7 +269,14 @@ void AFrameCharacter::EquipButtonPressed()
 	if (bDisableGameplay) return;
 	if (Combat)
 	{
-		ServerEquipButtonPressed();
+		if (Combat->CombatState == ECombatState::ECS_Unoccupied) ServerEquipButtonPressed();
+		bool bSwap = Combat->CanSwapWeapon() && !HasAuthority() && Combat->CombatState == ECombatState::ECS_Unoccupied && OverlappingWeapon == nullptr;
+		if (bSwap)
+		{
+			PlayWeaponSwapMontage();
+			Combat->CombatState = ECombatState::ECS_SwappingWeapons;
+			bFinishSwapping = false;
+		}
 	}
 }
 
@@ -397,6 +404,15 @@ void AFrameCharacter::PlayReloadMontage()
 
 
 		AnimInstance->Montage_JumpToSection(SectionName);
+	}
+}
+
+void AFrameCharacter::PlayWeaponSwapMontage()
+{
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance && WeaponSwapMontage)
+	{
+		AnimInstance->Montage_Play(WeaponSwapMontage);
 	}
 }
 

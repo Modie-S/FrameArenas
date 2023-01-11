@@ -16,6 +16,7 @@
 #include "FrameMultiplayer/GameState/FrameGameState.h"
 #include "FrameMultiplayer/PlayerState/FramePlayerState.h"
 #include "Components/Image.h"
+#include "FrameMultiplayer/HUD/ReturnToMainMenu.h"
 
 
 void AFramePlayerController::BeginPlay()
@@ -78,6 +79,28 @@ void AFramePlayerController::CheckPing(float DeltaTime)
         if (HighPingAnimationRunTime > HighPingWarningDuration)
         {
             StopHighPingWarning();
+        }
+    }
+}
+
+void AFramePlayerController::ShowReturnToMainMenu()
+{
+    // To do - show menu widget then bind
+    if (ReturnToMainMenuWidget == nullptr) return;
+    if (ReturnToMainMenu == nullptr)
+    {
+        ReturnToMainMenu = CreateWidget<UReturnToMainMenu>(this, ReturnToMainMenuWidget);
+    }
+    if (ReturnToMainMenu)
+    {
+        bReturnToMainMenuOpen = !bReturnToMainMenuOpen;
+        if (bReturnToMainMenuOpen)
+        {
+            ReturnToMainMenu->MenuSetup();
+        }
+        else
+        {
+            ReturnToMainMenu->MenuTearDown();
         }
     }
 }
@@ -557,4 +580,12 @@ void AFramePlayerController::HandleCooldown()
             FrameCharacter->bDisableGameplay = true;
             FrameCharacter->GetCombat()->FireButtonPressed(false);
         }
+}
+
+void AFramePlayerController::SetupInputComponent()
+{
+    Super::SetupInputComponent();
+    if (InputComponent == nullptr) return;
+
+    InputComponent->BindAction("Quit", IE_Pressed, this, &AFramePlayerController::ShowReturnToMainMenu);
 }

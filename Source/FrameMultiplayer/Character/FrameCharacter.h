@@ -11,6 +11,8 @@
 #include "FrameMultiplayer/Types/CombatState.h"
 #include "FrameCharacter.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnLeftGame);
+
 UCLASS()
 class FRAMEMULTIPLAYER_API AFrameCharacter : public ACharacter, public ICrosshairInteractInterface
 {
@@ -35,7 +37,7 @@ public:
 	void PlayWeaponSwapMontage();
 	void PlayElimMontage();
 	void PlayGrenadeThrowMontage();
-	void Elim();
+	void Elim(bool bPlayerLeftGame);
 	
 	void UpdateHUDHealth();
 	void UpdateHUDShield();
@@ -43,7 +45,7 @@ public:
 	void SpawnDefaultWeapon();
 	
 	UFUNCTION(NetMulticast, Reliable)
-	void MulticastElim();
+	void MulticastElim(bool bPlayerLeftGame);
 	virtual void Destroyed() override;
 	
 	UPROPERTY(Replicated)
@@ -56,7 +58,12 @@ public:
 	TMap<FName, class UBoxComponent*> HitCollisionBoxes;
 
 	bool bFinishSwapping = false;
-
+	
+	UFUNCTION(Server, Reliable)
+	void ServerLeaveGame();
+	
+	FOnLeftGame OnLeftGame;
+	
 protected:
 	
 	// Called when the game starts or when spawned
@@ -232,6 +239,12 @@ private:
 	float ElimDelay = 3.f;
 	
 	void ElimTimerFinished();
+
+	bool bLeftGame = false;
+
+	
+
+	
 
 	//
 	// Dissolve FX

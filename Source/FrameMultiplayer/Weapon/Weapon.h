@@ -140,6 +140,7 @@ protected:
 	
 	UPROPERTY()
 	class AFrameCharacter* FrameOwnerCharacter;
+	
 	UPROPERTY()
 	class AFramePlayerController* FrameOwnerController;
 

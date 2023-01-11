@@ -568,22 +568,16 @@ void AFrameCharacter::PollInit()
 	}
 }
 
-void AFrameCharacter::Elim()
+void AFrameCharacter::Elim(bool bPlayerLeftGame)
 {
 	DropOrDestroyWeapons();
 	
-	MulticastElim();
-	
-	GetWorldTimerManager().SetTimer(
-		ElimTimer,
-		this, 
-		&AFrameCharacter::ElimTimerFinished,
-		ElimDelay
-	);
+	MulticastElim(bPlayerLeftGame);
 }
 
-void AFrameCharacter::MulticastElim_Implementation()
+void AFrameCharacter::MulticastElim_Implementation(bool bPlayerLeftGame)
 {
+	bLeftGame = bPlayerLeftGame;
 	if (FramePlayerController)
 	{
 		FramePlayerController->SetHUDWeaponAmmo(0);
@@ -642,6 +636,23 @@ void AFrameCharacter::MulticastElim_Implementation()
 	{
 		ShowSniperScope(false);
 	}
+
+	GetWorldTimerManager().SetTimer(
+		ElimTimer,
+		this, 
+		&AFrameCharacter::ElimTimerFinished,
+		ElimDelay
+		);
+}
+
+void AFrameCharacter::ServerLeaveGame_Implementation()
+{
+	AFrameGameMode* FrameGameMode = GetWorld()->GetAuthGameMode<AFrameGameMode>();
+	FramePlayerState = FramePlayerState == nullptr ? GetPlayerState<AFramePlayerState>() : FramePlayerState;
+	if (FrameGameMode && FramePlayerState)
+	{
+		FrameGameMode->PlayerLeftGame(FramePlayerState);
+	}
 }
 
 void AFrameCharacter::DropOrDestroy(AWeapon* Weapon)
@@ -693,9 +704,14 @@ void AFrameCharacter::Destroyed()
 void AFrameCharacter::ElimTimerFinished()
 {
 	AFrameGameMode* FrameGameMode = GetWorld()->GetAuthGameMode<AFrameGameMode>();
-	if (FrameGameMode)
+	if (FrameGameMode && !bLeftGame)
 	{
 		FrameGameMode->RequestRespawn(this, Controller);
+	}
+
+	if (bLeftGame && IsLocallyControlled())
+	{
+		OnLeftGame.Broadcast();
 	}
 }
 

@@ -63,6 +63,12 @@ public:
 	void ServerLeaveGame();
 	
 	FOnLeftGame OnLeftGame;
+
+	/*UFUNCTION(NetMutlicast, Reliable)
+	void MulticastGainedLead();
+
+	UFUNCTION(NetMutlicast, Reliable)
+	void MulticastLostLead();*/
 	
 protected:
 	
@@ -242,10 +248,6 @@ private:
 
 	bool bLeftGame = false;
 
-	
-
-	
-
 	//
 	// Dissolve FX
 	//
@@ -270,7 +272,7 @@ private:
 	UMaterialInstance* DissolveMaterialInstance;
 
 	//
-	// Elim Drone
+	// Elim FX
 	//
 	UPROPERTY(EditAnywhere)
 	UParticleSystem* ElimDroneEffect;
@@ -283,6 +285,12 @@ private:
 
 	UPROPERTY()
 	class AFramePlayerState* FramePlayerState;
+
+	/*UPROPERTY(EditAnywhere)
+	UParticleSystem* LeaderSystem;
+
+	UPROPERTY()
+	UParticleSystemComponent* LeaderComponent;*/
 
 	//
 	// Grenade

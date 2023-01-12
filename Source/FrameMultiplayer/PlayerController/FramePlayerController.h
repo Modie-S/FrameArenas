@@ -43,6 +43,8 @@ public:
 
 	FHighPingDelegate HighPingDelegate;
 
+	void BroadcastElimination(APlayerState* Attacker, APlayerState* Victim);
+
 protected:
 	
 	virtual void SetupInputComponent() override;
@@ -83,6 +85,9 @@ protected:
 	void CheckPing(float DeltaTime);
 
 	void ShowReturnToMainMenu();
+
+	UFUNCTION(Client, Reliable)
+	void ClientKDAnnouncement(APlayerState* Attacker, APlayerState* Victim);
 	
 
 private:

@@ -582,6 +582,44 @@ void AFramePlayerController::HandleCooldown()
         }
 }
 
+void AFramePlayerController::BroadcastElimination(APlayerState* Attacker, APlayerState* Victim)
+{
+    ClientKDAnnouncement(Attacker, Victim);
+}
+
+void AFramePlayerController::ClientKDAnnouncement_Implementation(APlayerState* Attacker, APlayerState* Victim)
+{
+    APlayerState* Self = GetPlayerState<APlayerState>();
+    if (Attacker && Victim && Self)
+    {
+        FrameHUD = FrameHUD == nullptr ? Cast<AFrameHUD>(GetHUD()) : FrameHUD;
+        if (FrameHUD)
+        {
+            if (Attacker == Self && Victim != Self)
+            {
+                FrameHUD->AddKDAnnouncement("You", Victim->GetPlayerName());
+                return;
+            }
+            if (Victim == Self && Attacker != Self)
+            {
+                FrameHUD->AddKDAnnouncement(Attacker->GetPlayerName(), "You");
+                return;
+            }
+            if (Attacker == Victim && Attacker == Self)
+            {
+                FrameHUD->AddKDAnnouncement("You", "Yourself...");
+                return;
+            }
+            if (Attacker == Victim && Attacker != Self)
+            {
+                FrameHUD->AddKDAnnouncement(Attacker->GetPlayerName(), "Themselves...");
+                return;
+            }
+            FrameHUD->AddKDAnnouncement(Attacker->GetPlayerName(), Victim->GetPlayerName());
+        }
+    }
+}
+
 void AFramePlayerController::SetupInputComponent()
 {
     Super::SetupInputComponent();

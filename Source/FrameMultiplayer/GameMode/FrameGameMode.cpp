@@ -79,6 +79,9 @@ void AFrameGameMode::OnMatchStateSet()
 
 void AFrameGameMode::PlayerEliminated(class AFrameCharacter* ElimmedCharacter, class AFramePlayerController* VictimController, AFramePlayerController* AttackerController)
 {
+    if (AttackerController == nullptr || AttackerController->PlayerState == nullptr) return;
+    if (VictimController == nullptr || VictimController->PlayerState == nullptr) return;
+    
     AFramePlayerState* AttackerPlayerState = AttackerController ? Cast<AFramePlayerState>(AttackerController->PlayerState) : nullptr;
     AFramePlayerState* VictimPlayerState = VictimController ? Cast<AFramePlayerState>(VictimController->PlayerState) : nullptr;
 
@@ -98,6 +101,15 @@ void AFrameGameMode::PlayerEliminated(class AFrameCharacter* ElimmedCharacter, c
     if (ElimmedCharacter)
     {
         ElimmedCharacter->Elim(false);
+    }
+
+    for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+    {
+        AFramePlayerController* FramePlayer = Cast<AFramePlayerController>(*It);
+        if (FramePlayer && AttackerPlayerState && VictimPlayerState)
+        {
+            FramePlayer->BroadcastElimination(AttackerPlayerState, VictimPlayerState);
+        }
     }
 }
 

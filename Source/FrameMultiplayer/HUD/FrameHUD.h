@@ -1,4 +1,5 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// MaxiMod Games 2023
+// Modie Shakarchi
 
 #pragma once
 
@@ -52,6 +53,8 @@ public:
 
 	void AddAnnouncement();
 
+	void AddKDAnnouncement(FString Attacker, FString Victim);
+
 protected:
 
 	virtual void BeginPlay() override;
@@ -59,12 +62,27 @@ protected:
 
 private:
 
+	UPROPERTY()
+	class APlayerController* OwningPlayer;
+
 	FHUDPackage HUDPackage;
 
 	void DrawCrosshair(UTexture2D* Texture, FVector2D ViewportCentre, FVector2D Spread, FLinearColor CrosshairColor);
 
 	UPROPERTY(EditAnywhere)
 	float CrosshairSpreadMax = 16.f;
+
+	UPROPERTY(EditAnywhere)
+	TSubclassOf<class UKDAnnouncement> KDAnnouncementClass;
+
+	UPROPERTY(EditAnywhere)
+	float KDAnnouncementLifetime = 3.0f;
+
+	UFUNCTION()
+	void KDAnnouncementTimerFinished(UKDAnnouncement* TextToRemove);
+
+	UPROPERTY()
+	TArray<UKDAnnouncement*> KDMessages;
 
 public:
 

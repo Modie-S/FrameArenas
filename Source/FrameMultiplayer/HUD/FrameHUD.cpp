@@ -1,15 +1,22 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// MaxiMod Games 2023
+// Modie Shakarchi
 
 
 #include "FrameHUD.h"
 #include "GameFramework/PlayerController.h"
 #include "CharacterOverlay.h"
 #include "Announcement.h"
+#include "KDAnnouncement.h"
+#include "Blueprint/WidgetLayoutLibrary.h"
+#include "Components/HorizontalBox.h"
+#include "Components/CanvasPanelSlot.h"
 
 
 void AFrameHUD::BeginPlay()
 {
     Super::BeginPlay();
+
+    
 }
 
 
@@ -35,6 +42,55 @@ void AFrameHUD::AddAnnouncement()
     }
 }
 
+
+void AFrameHUD::AddKDAnnouncement(FString Attacker, FString Victim)
+{
+    OwningPlayer = OwningPlayer == nullptr ? GetOwningPlayerController() : OwningPlayer;
+    if (OwningPlayer && KDAnnouncementClass)
+    {
+        UKDAnnouncement* ElimAnnouncementWidget = CreateWidget<UKDAnnouncement>(OwningPlayer, KDAnnouncementClass);
+        if (ElimAnnouncementWidget)
+        {
+            ElimAnnouncementWidget->SetKDAnnouncementText(Attacker, Victim);
+            ElimAnnouncementWidget->AddToViewport();
+
+            for (UKDAnnouncement* Text : KDMessages)
+            {
+                if (Text && Text->KDAnnouncementBox)
+                {
+                    UCanvasPanelSlot* CanvasSlot = UWidgetLayoutLibrary::SlotAsCanvasSlot(Text->KDAnnouncementBox);
+                    if (CanvasSlot)
+                    {
+                        FVector2D Position = CanvasSlot->GetPosition();
+                        FVector2D NewPosition(CanvasSlot->GetPosition().X, Position.Y - CanvasSlot->GetSize().Y);
+                        CanvasSlot->SetPosition(NewPosition);
+                    } 
+                }
+            }
+
+            KDMessages.Add(ElimAnnouncementWidget);
+
+            FTimerHandle KDTextTimer;
+            FTimerDelegate KDTextDelegate;
+            KDTextDelegate.BindUFunction(this, FName("KDAnnouncementTimerFinished"), ElimAnnouncementWidget);
+            GetWorldTimerManager().SetTimer(
+                KDTextTimer,
+                KDTextDelegate,
+                KDAnnouncementLifetime,
+                false
+                );
+        }
+    }
+}
+
+
+void AFrameHUD::KDAnnouncementTimerFinished(UKDAnnouncement* TextToRemove)
+{
+    if (TextToRemove)
+    {
+        TextToRemove->RemoveFromParent();
+    }
+}
 
 void AFrameHUD::DrawHUD()
 {

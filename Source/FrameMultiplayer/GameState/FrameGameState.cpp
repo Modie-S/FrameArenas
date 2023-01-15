@@ -1,4 +1,5 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// MaxiMod Games 2023
+// Modie Shakarchi
 
 
 #include "FrameGameState.h"
@@ -11,6 +12,8 @@ void AFrameGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
     Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
     DOREPLIFETIME(AFrameGameState, TopScoringPlayers);
+    DOREPLIFETIME(AFrameGameState, RedTeamScore);
+    DOREPLIFETIME(AFrameGameState, BlueTeamScore);
 }
 
 void AFrameGameState::UpdateTopScore(class AFramePlayerState* ScoringPlayer)
@@ -30,4 +33,14 @@ void AFrameGameState::UpdateTopScore(class AFramePlayerState* ScoringPlayer)
         TopScoringPlayers.AddUnique(ScoringPlayer);
         TopScore = ScoringPlayer->GetScore();
     }
+}
+
+void AFrameGameState::OnRep_RedTeamScore()
+{
+    
+}
+
+void AFrameGameState::OnRep_BlueTeamScore()
+{
+    
 }

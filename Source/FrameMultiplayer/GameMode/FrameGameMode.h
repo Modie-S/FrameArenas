@@ -26,6 +26,7 @@ public:
 	virtual void PlayerEliminated(class AFrameCharacter* ElimmedCharacter, class AFramePlayerController* VictimController, AFramePlayerController* AttackerController);
 	virtual void RequestRespawn(ACharacter* ElimmedCharacter, AController* ElimmedController);
 	void PlayerLeftGame(class AFramePlayerState* PlayerLeaving);
+	virtual float CalculateDamage(AController* Attacker, AController* Victim, float BaseDamage);
 
 
 	UPROPERTY(EditDefaultsOnly)

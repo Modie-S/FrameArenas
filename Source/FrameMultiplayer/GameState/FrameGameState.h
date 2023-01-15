@@ -1,4 +1,5 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// MaxiMod Games 2023
+// Modie Shakarchi
 
 #pragma once
 
@@ -21,6 +22,24 @@ public:
 
 	UPROPERTY(Replicated)
 	TArray<AFramePlayerState*> TopScoringPlayers;
+
+	//
+	// Teams
+	//
+	TArray<AFramePlayerState*> RedTeam;
+	TArray<AFramePlayerState*> BlueTeam;
+	
+	UPROPERTY(ReplicatedUsing = OnRep_RedTeamScore)
+	float RedTeamScore = 0.f;
+
+	UFUNCTION()
+	void OnRep_RedTeamScore();
+
+	UPROPERTY(ReplicatedUsing = OnRep_BlueTeamScore)
+	float BlueTeamScore = 0.f;
+
+	UFUNCTION()
+	void OnRep_BlueTeamScore();
 
 private:
 

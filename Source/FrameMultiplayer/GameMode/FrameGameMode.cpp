@@ -77,6 +77,12 @@ void AFrameGameMode::OnMatchStateSet()
 }
 
 
+float AFrameGameMode::CalculateDamage(AController* Attacker, AController* Victim, float BaseDamage)
+{
+    return BaseDamage;
+}
+
+
 void AFrameGameMode::PlayerEliminated(class AFrameCharacter* ElimmedCharacter, class AFramePlayerController* VictimController, AFramePlayerController* AttackerController)
 {
     if (AttackerController == nullptr || AttackerController->PlayerState == nullptr) return;
@@ -148,4 +154,5 @@ void AFrameGameMode::PlayerLeftGame(class AFramePlayerState* PlayerLeaving)
         CharacterLeaving->Elim(true);
     }
 }
+
 

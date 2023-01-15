@@ -1,9 +1,11 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// MaxiMod Games 2023
+// Modie Shakarchi
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerState.h"
+#include "FrameMultiplayer/Types/Team.h"
 #include "FramePlayerState.generated.h"
 
 /**
@@ -40,5 +42,15 @@ private:
 
 	UPROPERTY(ReplicatedUsing = OnRep_Elims)
 	int32 Elims;
-	
+
+	UPROPERTY(ReplicatedUsing = OnRep_Team)
+	ETeam Team = ETeam::ET_NoTeam;
+
+	UFUNCTION()
+	void OnRep_Team();
+
+public:
+
+	FORCEINLINE ETeam GetTeam() const { return Team; }
+	void SetTeam(ETeam TeamToSet);
 };

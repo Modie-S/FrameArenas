@@ -58,8 +58,7 @@ void AHitScanWeapon::Fire(const FVector& HitTarget)
                         FrameCharacter,
                         Start,
                         HitTarget,
-                        FrameOwnerController->GetServerTime() - FrameOwnerController->SingleTripTime,
-                        this
+                        FrameOwnerController->GetServerTime() - FrameOwnerController->SingleTripTime
                     );
                 }
             }  

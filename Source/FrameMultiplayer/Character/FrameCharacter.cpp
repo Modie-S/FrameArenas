@@ -186,6 +186,29 @@ void AFrameCharacter::Tick(float DeltaTime)
 	PollInit();
 }
 
+void AFrameCharacter::SetTeamColour(ETeam Team)
+{
+	if (GetMesh() == nullptr || StandardTeamMaterial0 == nullptr || StandardTeamMaterial1 == nullptr || StandardTeamMaterial2 == nullptr) return;
+	switch (Team)
+	{
+		case ETeam::ET_NoTeam:
+			GetMesh()->SetMaterial(0, StandardTeamMaterial0);
+			GetMesh()->SetMaterial(1, StandardTeamMaterial1);
+			GetMesh()->SetMaterial(2, StandardTeamMaterial2);
+			break;
+		case ETeam::ET_BlueTeam:
+			GetMesh()->SetMaterial(0, BlueTeamMaterial0);
+			GetMesh()->SetMaterial(1, BlueTeamMaterial1);
+			GetMesh()->SetMaterial(2, BlueTeamMaterial2);
+			break;
+		case ETeam::ET_RedTeam:
+			GetMesh()->SetMaterial(0, RedTeamMaterial0);
+			GetMesh()->SetMaterial(1, RedTeamMaterial1);
+			GetMesh()->SetMaterial(2, RedTeamMaterial2);
+			break;
+	}
+}
+
 void AFrameCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
@@ -458,7 +481,9 @@ void AFrameCharacter::ThrowButtonPressed()
 
 void AFrameCharacter::ReceiveDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType, class AController* InstigatorController, AActor* DamageCauser)
 {
-	if (bElimmed) return;
+	FrameGameMode = FrameGameMode == nullptr ? GetWorld()->GetAuthGameMode<AFrameGameMode>() : FrameGameMode;
+	if (bElimmed || FrameGameMode == nullptr) return;
+	Damage = FrameGameMode->CalculateDamage(InstigatorController, Controller, Damage);
 
 	float DamageToHealth = Damage;
 	if (Shield > 0.f) // Damage shield first
@@ -470,8 +495,8 @@ void AFrameCharacter::ReceiveDamage(AActor* DamagedActor, float Damage, const UD
 		}
 		else
 		{
-			Shield = 0.f;
 			DamageToHealth = FMath::Clamp(DamageToHealth - Shield, 0.f, Damage);
+			Shield = 0.f;
 		}
 	}
 
@@ -483,7 +508,6 @@ void AFrameCharacter::ReceiveDamage(AActor* DamagedActor, float Damage, const UD
 
 	if (Health == 0.f)
 	{
-		AFrameGameMode* FrameGameMode = GetWorld()->GetAuthGameMode<AFrameGameMode>();
 		if (FrameGameMode)
 		{
 			FramePlayerController = FramePlayerController == nullptr ? Cast<AFramePlayerController>(Controller) : FramePlayerController;
@@ -542,7 +566,7 @@ void AFrameCharacter::UpdateHUDAmmo()
 
 void AFrameCharacter::SpawnDefaultWeapon()
 {
-	AFrameGameMode* FrameGameMode = Cast<AFrameGameMode>(UGameplayStatics::GetGameMode(this));
+	FrameGameMode = FrameGameMode == nullptr ? GetWorld()->GetAuthGameMode<AFrameGameMode>() : FrameGameMode;
 	UWorld* World = GetWorld();
 	if (FrameGameMode && World && !bElimmed && DefaultWeaponClass)
 	{
@@ -564,6 +588,7 @@ void AFrameCharacter::PollInit()
 		{
 			FramePlayerState->AddToScore(0.f);
 			FramePlayerState->AddToElims(0);
+			SetTeamColour(FramePlayerState->GetTeam());
 		}
 	}
 }
@@ -609,6 +634,7 @@ void AFrameCharacter::MulticastElim_Implementation(bool bPlayerLeftGame)
 	// Disabling collision
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	AttachedGrenade->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 	// Spawn Elim Drone
 	if (ElimDroneEffect)
@@ -647,7 +673,7 @@ void AFrameCharacter::MulticastElim_Implementation(bool bPlayerLeftGame)
 
 void AFrameCharacter::ServerLeaveGame_Implementation()
 {
-	AFrameGameMode* FrameGameMode = GetWorld()->GetAuthGameMode<AFrameGameMode>();
+	FrameGameMode = FrameGameMode == nullptr ? GetWorld()->GetAuthGameMode<AFrameGameMode>() : FrameGameMode;
 	FramePlayerState = FramePlayerState == nullptr ? GetPlayerState<AFramePlayerState>() : FramePlayerState;
 	if (FrameGameMode && FramePlayerState)
 	{
@@ -692,7 +718,7 @@ void AFrameCharacter::Destroyed()
 		ElimDroneComponent->DestroyComponent();
 	}
 
-	AFrameGameMode* FrameGameMode = Cast<AFrameGameMode>(UGameplayStatics::GetGameMode(this));
+	FrameGameMode = FrameGameMode == nullptr ? GetWorld()->GetAuthGameMode<AFrameGameMode>() : FrameGameMode;
 	bool bMatchNotInProgress = FrameGameMode && FrameGameMode->GetMatchState() != MatchState::InProgress;
 
 	if (Combat && Combat->EquippedWeapon && bMatchNotInProgress)
@@ -703,7 +729,7 @@ void AFrameCharacter::Destroyed()
 
 void AFrameCharacter::ElimTimerFinished()
 {
-	AFrameGameMode* FrameGameMode = GetWorld()->GetAuthGameMode<AFrameGameMode>();
+	FrameGameMode = FrameGameMode == nullptr ? GetWorld()->GetAuthGameMode<AFrameGameMode>() : FrameGameMode;
 	if (FrameGameMode && !bLeftGame)
 	{
 		FrameGameMode->RequestRespawn(this, Controller);
@@ -773,6 +799,10 @@ void AFrameCharacter::HideCameraIfCharacterClose()
 		{
 			Combat->EquippedWeapon->GetWeaponMesh()->bOwnerNoSee = true;
 		}
+		if (Combat && Combat->SecondaryWeapon && Combat->SecondaryWeapon->GetWeaponMesh())
+		{
+			Combat->SecondaryWeapon->GetWeaponMesh()->bOwnerNoSee = true;
+		}
 	}
 	else
 	{
@@ -780,6 +810,10 @@ void AFrameCharacter::HideCameraIfCharacterClose()
 		if (Combat && Combat->EquippedWeapon && Combat->EquippedWeapon->GetWeaponMesh())
 		{
 			Combat->EquippedWeapon->GetWeaponMesh()->bOwnerNoSee = false;
+		}
+		if (Combat && Combat->SecondaryWeapon && Combat->SecondaryWeapon->GetWeaponMesh())
+		{
+			Combat->SecondaryWeapon->GetWeaponMesh()->bOwnerNoSee = false;
 		}
 	}
 }

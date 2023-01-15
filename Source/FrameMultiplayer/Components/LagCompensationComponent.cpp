@@ -35,17 +35,19 @@ void ULagCompensationComponent::TickComponent(float DeltaTime, ELevelTick TickTy
 }
 
 
-void ULagCompensationComponent::ServerScoreRequest_Implementation(AFrameCharacter* HitCharacter, const FVector_NetQuantize& TraceStart, const FVector_NetQuantize& HitLocation, float HitTime, class AWeapon* DamageCauser)
+void ULagCompensationComponent::ServerScoreRequest_Implementation(AFrameCharacter* HitCharacter, const FVector_NetQuantize& TraceStart, const FVector_NetQuantize& HitLocation, float HitTime)
 {
 	FServerSideRewindResult Confirm = ServerSideRewind(HitCharacter, TraceStart, HitLocation, HitTime);
 
-	if (Character && HitCharacter && DamageCauser && Confirm.bHitConfirm)
+	if (Character && HitCharacter && Character->GetEquippedWeapon() && Confirm.bHitConfirm)
 	{
+		const float Damage = Confirm.bHeadShot ? Character->GetEquippedWeapon()->GetHeadShotDamage() : Character->GetEquippedWeapon()->GetDamage();
+		
 		UGameplayStatics::ApplyDamage(
 			HitCharacter,
-			DamageCauser->GetDamage(),
+			Damage,
 			Character->Controller,
-			DamageCauser,
+			Character->GetEquippedWeapon(),
 			UDamageType::StaticClass()
 		);
 	}
@@ -62,7 +64,7 @@ void ULagCompensationComponent::ShotgunServerScoreRequest_Implementation(const T
 		float TotalDamage = 0.f;
 		if (Confirm.HeadShots.Contains(HitCharacter))
 		{
-			float HeadShotDamage = Confirm.HeadShots[HitCharacter] * Character->GetEquippedWeapon()->GetDamage();
+			float HeadShotDamage = Confirm.HeadShots[HitCharacter] * Character->GetEquippedWeapon()->GetHeadShotDamage();
 			TotalDamage += HeadShotDamage;
 		}
 
@@ -87,11 +89,13 @@ void ULagCompensationComponent::ProjectileServerScoreRequest_Implementation(AFra
 {
 	FServerSideRewindResult Confirm = ProjectileServerSideRewind(HitCharacter, TraceStart, InitialVelocity, HitTime);
 
-	if (Character && HitCharacter && Confirm.bHitConfirm)
+	if (Character && HitCharacter && Confirm.bHitConfirm && Character->GetEquippedWeapon())
 	{
+		const float Damage = Confirm.bHeadShot ? Character->GetEquippedWeapon()->GetHeadShotDamage() : Character->GetEquippedWeapon()->GetDamage();
+		
 		UGameplayStatics::ApplyDamage(
 			HitCharacter,
-			Character->GetEquippedWeapon()->GetDamage(),
+			Damage,
 			Character->Controller,
 			Character->GetEquippedWeapon(),
 			UDamageType::StaticClass()

@@ -1,4 +1,5 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// MaxiMod Games 2023
+// Modie Shakarchi
 
 
 #include "FramePlayerState.h"
@@ -12,6 +13,7 @@ void AFramePlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
     Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
     DOREPLIFETIME(AFramePlayerState, Elims);
+    DOREPLIFETIME(AFramePlayerState, Team);
 }
 
 
@@ -76,4 +78,29 @@ void AFramePlayerState::OnRep_Elims()
         }
     }
 }
+
+
+void AFramePlayerState::SetTeam(ETeam TeamToSet)
+{
+    Team = TeamToSet;
+
+    AFrameCharacter* FCharacter = Cast<AFrameCharacter>(GetPawn());
+    if (FCharacter)
+    {
+        FCharacter->SetTeamColour(Team);
+    }
+}
+
+
+void AFramePlayerState::OnRep_Team()
+{
+    AFrameCharacter* FCharacter = Cast<AFrameCharacter>(GetPawn());
+    if (FCharacter)
+    {
+        FCharacter->SetTeamColour(Team);
+    }
+}
+
+
+
 

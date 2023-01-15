@@ -9,6 +9,7 @@
 #include "FrameMultiplayer/Interfaces/CrosshairInteractInterface.h"
 #include "Components/TimelineComponent.h"
 #include "FrameMultiplayer/Types/CombatState.h"
+#include "FrameMultiplayer/Types/Team.h"
 #include "FrameCharacter.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnLeftGame);
@@ -63,6 +64,8 @@ public:
 	void ServerLeaveGame();
 	
 	FOnLeftGame OnLeftGame;
+
+	void SetTeamColour(ETeam Team);
 
 	/*UFUNCTION(NetMutlicast, Reliable)
 	void MulticastGainedLead();
@@ -272,6 +275,42 @@ private:
 	UMaterialInstance* DissolveMaterialInstance;
 
 	//
+	// Team Colours
+	//
+	UPROPERTY(EditAnywhere, Category = Elimination)
+	UMaterialInstance* RedDissolveMaterialInst;
+
+	UPROPERTY(EditAnywhere, Category = Teams)
+	UMaterialInstance* RedTeamMaterial0;
+
+	UPROPERTY(EditAnywhere, Category = Teams)
+	UMaterialInstance* RedTeamMaterial1;
+
+	UPROPERTY(EditAnywhere, Category = Teams)
+	UMaterialInstance* RedTeamMaterial2;
+
+	UPROPERTY(EditAnywhere, Category = Elimination)
+	UMaterialInstance* BlueDissolveMaterialInst;
+
+	UPROPERTY(EditAnywhere, Category = Teams)
+	UMaterialInstance* BlueTeamMaterial0;
+
+	UPROPERTY(EditAnywhere, Category = Teams)
+	UMaterialInstance* BlueTeamMaterial1;
+
+	UPROPERTY(EditAnywhere, Category = Teams)
+	UMaterialInstance* BlueTeamMaterial2;
+
+	UPROPERTY(EditAnywhere, Category = Teams)
+	UMaterialInstance* StandardTeamMaterial0;
+
+	UPROPERTY(EditAnywhere, Category = Teams)
+	UMaterialInstance* StandardTeamMaterial1;
+
+	UPROPERTY(EditAnywhere, Category = Teams)
+	UMaterialInstance* StandardTeamMaterial2;
+
+	//
 	// Elim FX
 	//
 	UPROPERTY(EditAnywhere)
@@ -304,6 +343,8 @@ private:
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<AWeapon> DefaultWeaponClass;
 
+	UPROPERTY()
+	class AFrameGameMode* FrameGameMode;
 
 public:
 

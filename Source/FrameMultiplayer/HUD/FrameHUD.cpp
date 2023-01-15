@@ -92,6 +92,7 @@ void AFrameHUD::KDAnnouncementTimerFinished(UKDAnnouncement* TextToRemove)
     }
 }
 
+
 void AFrameHUD::DrawHUD()
 {
     Super::DrawHUD();
@@ -131,6 +132,7 @@ void AFrameHUD::DrawHUD()
         }
     }
 }
+
 
 void AFrameHUD::DrawCrosshair(UTexture2D* Texture, FVector2D ViewportCentre, FVector2D Spread, FLinearColor CrosshairColor)
 {

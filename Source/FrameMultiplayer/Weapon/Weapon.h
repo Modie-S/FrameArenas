@@ -7,6 +7,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "WeaponTypes.h"
+#include "FrameMultiplayer/Types/Team.h"
 #include "Weapon.generated.h"
 
 UENUM(BlueprintType)
@@ -45,7 +46,7 @@ public:
 	void SetHUDAmmo();
 	void ShowPickupWidget(bool bShowWidget);
 	virtual void Fire(const FVector& HitTarget);
-	void Dropped();
+	virtual void Dropped();
 	void AddAmmo(int32 AmmoAdded);
 
 	UPROPERTY(EditAnywhere, Category = Crosshairs)
@@ -97,6 +98,9 @@ public:
 	bool bUseScatter = false;
 
 	FVector TraceEndScatter(const FVector& HitTarget);
+	
+	UPROPERTY(EditAnywhere)
+	ETeam Team;
 	
 protected:
 
@@ -192,6 +196,8 @@ private:
 
 	UPROPERTY(EditAnywhere)
 	EWeaponType WeaponType;
+
+	
 
 	
 

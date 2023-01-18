@@ -118,6 +118,8 @@ protected:
 
 	void AttachActorToLeftHand(AActor* ActorToAttach);
 
+	void AttachFlag(AWeapon* Flag);
+
 	void AttachActorToBackpack(AActor* ActorToAttach);
 
 	void UpdateCarriedAmmo();
@@ -265,7 +267,11 @@ private:
 
 	void UpdateHUDGrenades();
 
+	UPROPERTY(Replicated)
 	bool bHoldingFlag = false;
+
+	UPROPERTY()
+	AWeapon* TheFlag;
 
 public:	
 	

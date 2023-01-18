@@ -24,6 +24,7 @@
 #include "FrameMultiplayer/Weapon/WeaponTypes.h"
 #include "Components/BoxComponent.h"
 #include "FrameMultiplayer/Components/LagCompensationComponent.h"
+#include "FrameMultiplayer/PlayerStart/TeamPlayerStart.h"
 
 
 AFrameCharacter::AFrameCharacter()
@@ -333,6 +334,7 @@ void AFrameCharacter::CrouchButtonPressed()
 
 void AFrameCharacter::ReloadButtonPressed()
 {
+	//if (Combat && Combat->bHoldingFlag) return; // Play test and get player reaction
 	if (bDisableGameplay) return;
 	if (Combat)
 	{
@@ -360,6 +362,7 @@ void AFrameCharacter::AimButtonReleased()
 
 void AFrameCharacter::FireButtonPressed()
 {
+	//if (Combat && Combat->bHoldingFlag) return; // Play test and get player reaction
 	if (bDisableGameplay) return;
 	if (Combat)
 	{
@@ -369,6 +372,7 @@ void AFrameCharacter::FireButtonPressed()
 
 void AFrameCharacter::FireButtonReleased()
 {
+	//if (Combat && Combat->bHoldingFlag) return; // Play test and get player reaction
 	if (bDisableGameplay) return;
 	if (Combat)
 	{
@@ -579,6 +583,40 @@ void AFrameCharacter::SpawnDefaultWeapon()
 	}
 }
 
+void AFrameCharacter::OnPlayerStateInitialized()
+{
+	FramePlayerState->AddToScore(0.f);
+	FramePlayerState->AddToElims(0);
+	SetTeamColour(FramePlayerState->GetTeam());
+	SetSpawnPoint();
+}
+
+void AFrameCharacter::SetSpawnPoint()
+{
+	if (HasAuthority() && FramePlayerState->GetTeam() != ETeam::ET_NoTeam)
+	{
+		TArray<AActor*> PlayerStarts;
+		UGameplayStatics::GetAllActorsOfClass(this, ATeamPlayerStart::StaticClass(), PlayerStarts);
+		TArray<ATeamPlayerStart*> TeamPlayerStarts;
+		for (auto Starts : PlayerStarts)
+		{
+			ATeamPlayerStart* TeamStart = Cast<ATeamPlayerStart>(Starts);
+			if (TeamStart && TeamStart->Team == FramePlayerState->GetTeam())
+			{
+				TeamPlayerStarts.Add(TeamStart);
+			}
+		}
+		if (TeamPlayerStarts.Num() > 0)
+		{
+			ATeamPlayerStart* ChosenPlayerStart = TeamPlayerStarts[FMath::RandRange(0, TeamPlayerStarts.Num() - 1)];
+			SetActorLocationAndRotation(
+				ChosenPlayerStart->GetActorLocation(),
+				ChosenPlayerStart->GetActorRotation()
+			);
+		}
+	}
+}
+
 void AFrameCharacter::PollInit()
 {
 	if (FramePlayerState == nullptr)
@@ -586,9 +624,7 @@ void AFrameCharacter::PollInit()
 		FramePlayerState = GetPlayerState<AFramePlayerState>();
 		if (FramePlayerState)
 		{
-			FramePlayerState->AddToScore(0.f);
-			FramePlayerState->AddToElims(0);
-			SetTeamColour(FramePlayerState->GetTeam());
+			OnPlayerStateInitialized();
 		}
 	}
 }
@@ -706,6 +742,11 @@ void AFrameCharacter::DropOrDestroyWeapons()
 		{
 			DropOrDestroy(Combat->SecondaryWeapon);
 		}
+		if (Combat->TheFlag)
+		{
+			Combat->TheFlag->Dropped();
+		}
+		
 	}
 }
 
@@ -856,4 +897,17 @@ bool AFrameCharacter::IsHoldingFlag() const
 {
 	if (Combat == nullptr) return false;
 	return Combat->bHoldingFlag;
+}
+
+ETeam AFrameCharacter::GetTeam()
+{
+	FramePlayerState = FramePlayerState == nullptr ? GetPlayerState<AFramePlayerState>() : FramePlayerState;
+	if (FramePlayerState == nullptr) return ETeam::ET_NoTeam;
+	return FramePlayerState->GetTeam();
+}
+
+void AFrameCharacter::SetHoldingFlag(bool bHolding)
+{
+	if (Combat == nullptr) return;
+	Combat->bHoldingFlag = bHolding;
 }

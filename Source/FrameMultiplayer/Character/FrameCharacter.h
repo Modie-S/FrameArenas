@@ -93,7 +93,8 @@ protected:
 	void ThrowButtonPressed();
 	void DropOrDestroy(AWeapon* Weapon);
 	void DropOrDestroyWeapons();
-	
+	void SetSpawnPoint();
+	void OnPlayerStateInitialized();
 	
 	UFUNCTION()
 	void ReceiveDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType, class AController* InstigatorController, AActor* DamageCauser);
@@ -371,5 +372,7 @@ public:
 	bool IsLocallyReloading();
 	FORCEINLINE ULagCompensationComponent* GetLagComp() const { return LagCompensation; }
 	FORCEINLINE bool IsHoldingFlag() const;
+	ETeam GetTeam();
+	void SetHoldingFlag(bool bHolding);
 };
 

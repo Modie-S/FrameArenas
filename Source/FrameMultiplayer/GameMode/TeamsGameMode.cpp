@@ -6,7 +6,14 @@
 #include "FrameMultiplayer/GameState/FrameGameState.h"
 #include "FrameMultiplayer/PlayerState/FramePlayerState.h"
 #include "Kismet/GameplayStatics.h"
+#include "FrameMultiplayer/PlayerController/FramePlayerController.h"
 
+
+
+ATeamsGameMode::ATeamsGameMode()
+{
+   bTeamsMatch = true;
+}
 
 void ATeamsGameMode::PostLogin(APlayerController* NewPlayer)
 {
@@ -90,4 +97,23 @@ float ATeamsGameMode::CalculateDamage(AController* Attacker, AController* Victim
         return 0.f;
     }
     return BaseDamage;
+}
+
+void ATeamsGameMode::PlayerEliminated(AFrameCharacter* ElimmedCharacter, AFramePlayerController* VictimController, AFramePlayerController* AttackerController)
+{
+    Super::PlayerEliminated(ElimmedCharacter, VictimController, AttackerController);
+
+    AFrameGameState* FGameState = Cast<AFrameGameState>(UGameplayStatics::GetGameState(this));
+    AFramePlayerState* AttackerPlayerState = AttackerController ? Cast<AFramePlayerState>(AttackerController->PlayerState) : nullptr;
+    if (FGameState && AttackerPlayerState)
+    {
+        if (AttackerPlayerState->GetTeam() == ETeam::ET_BlueTeam)
+        {
+            FGameState->BlueTeamScored();
+        }
+        if (AttackerPlayerState->GetTeam() == ETeam::ET_RedTeam)
+        {
+            FGameState->RedTeamScored();
+        }
+    }
 }

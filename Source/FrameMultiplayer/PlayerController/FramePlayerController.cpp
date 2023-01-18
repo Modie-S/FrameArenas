@@ -32,6 +32,82 @@ void AFramePlayerController::GetLifetimeReplicatedProps(TArray<FLifetimeProperty
     Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
     DOREPLIFETIME(AFramePlayerController, MatchState);
+    DOREPLIFETIME(AFramePlayerController, bShowTeamScores);
+}
+
+void AFramePlayerController::HideTeamScores()
+{
+    FrameHUD = FrameHUD == nullptr ? Cast<AFrameHUD>(GetHUD()) : FrameHUD;
+    
+    bool bHUDValid = FrameHUD && 
+                FrameHUD->CharacterOverlay && 
+                FrameHUD->CharacterOverlay->RedTeamScore && 
+                FrameHUD->CharacterOverlay->BlueTeamScore;
+    
+    if (bHUDValid)
+    {
+        FrameHUD->CharacterOverlay->RedTeamScore->SetText(FText());
+        FrameHUD->CharacterOverlay->BlueTeamScore->SetText(FText());
+    }
+}
+
+void AFramePlayerController::InitTeamScores()
+{
+    FrameHUD = FrameHUD == nullptr ? Cast<AFrameHUD>(GetHUD()) : FrameHUD;
+    
+    bool bHUDValid = FrameHUD && 
+                FrameHUD->CharacterOverlay && 
+                FrameHUD->CharacterOverlay->RedTeamScore && 
+                FrameHUD->CharacterOverlay->BlueTeamScore;
+    
+    if (bHUDValid)
+    {
+        FString Zero("0");
+        FrameHUD->CharacterOverlay->RedTeamScore->SetText(FText::FromString(Zero));
+        FrameHUD->CharacterOverlay->BlueTeamScore->SetText(FText::FromString(Zero));
+    }
+}
+
+void AFramePlayerController::OnRep_ShowTeamScores()
+{
+    if (bShowTeamScores)
+    {
+        InitTeamScores();
+    }
+    else
+    {
+        HideTeamScores();
+    }
+}
+
+void AFramePlayerController::SetHUDRedTeamScore(int32 RedScore)
+{
+    FrameHUD = FrameHUD == nullptr ? Cast<AFrameHUD>(GetHUD()) : FrameHUD;
+    
+    bool bHUDValid = FrameHUD && 
+                FrameHUD->CharacterOverlay && 
+                FrameHUD->CharacterOverlay->RedTeamScore;
+    
+    if (bHUDValid)
+    {
+        FString ScoreText = FString::Printf(TEXT("%d"), RedScore);
+        FrameHUD->CharacterOverlay->RedTeamScore->SetText(FText::FromString(ScoreText));
+    }
+}
+
+void AFramePlayerController::SetHUDBlueTeamScore(int32 BlueScore)
+{
+    FrameHUD = FrameHUD == nullptr ? Cast<AFrameHUD>(GetHUD()) : FrameHUD;
+    
+    bool bHUDValid = FrameHUD && 
+                FrameHUD->CharacterOverlay && 
+                FrameHUD->CharacterOverlay->BlueTeamScore;
+    
+    if (bHUDValid)
+    {
+        FString ScoreText = FString::Printf(TEXT("%d"), BlueScore);
+        FrameHUD->CharacterOverlay->BlueTeamScore->SetText(FText::FromString(ScoreText));
+    }
 }
 
 void AFramePlayerController::Tick(float DeltaTime)
@@ -484,13 +560,13 @@ void AFramePlayerController::ReceivedPlayer()
     }
 }
 
-void AFramePlayerController::OnMatchStateSet(FName State)
+void AFramePlayerController::OnMatchStateSet(FName State, bool bTeamsMatch)
 {
     MatchState = State;
 
     if (MatchState == MatchState::InProgress)
     {
-        HandleMatchHasStarted();
+        HandleMatchHasStarted(bTeamsMatch);
     }
     else if (MatchState == MatchState::Cooldown)
     {
@@ -511,8 +587,9 @@ void AFramePlayerController::OnRep_MatchState()
     }
 }
 
-void AFramePlayerController::HandleMatchHasStarted()
+void AFramePlayerController::HandleMatchHasStarted(bool bTeamsMatch)
 {
+    if (HasAuthority()) bShowTeamScores = bTeamsMatch;
     FrameHUD = FrameHUD == nullptr ? Cast<AFrameHUD>(GetHUD()) : FrameHUD;
         if (FrameHUD)
         {
@@ -520,6 +597,15 @@ void AFramePlayerController::HandleMatchHasStarted()
             if (FrameHUD->Announcement)
             {
                 FrameHUD->Announcement->SetVisibility(ESlateVisibility::Hidden);
+            }
+            if (!HasAuthority()) return;
+            if (bTeamsMatch)
+            {
+                InitTeamScores();
+            }
+            else
+            {
+                HideTeamScores();
             }
         }
 }

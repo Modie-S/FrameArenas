@@ -71,7 +71,7 @@ void AFrameGameMode::OnMatchStateSet()
         AFramePlayerController* FramePlayer = Cast<AFramePlayerController>(*It);
         if (FramePlayer)
         {
-            FramePlayer->OnMatchStateSet(MatchState);
+            FramePlayer->OnMatchStateSet(MatchState, bTeamsMatch);
         }
     }
 }

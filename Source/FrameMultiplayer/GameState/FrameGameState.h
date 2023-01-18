@@ -26,6 +26,10 @@ public:
 	//
 	// Teams
 	//
+
+	void RedTeamScored();
+	void BlueTeamScored();
+
 	TArray<AFramePlayerState*> RedTeam;
 	TArray<AFramePlayerState*> BlueTeam;
 	

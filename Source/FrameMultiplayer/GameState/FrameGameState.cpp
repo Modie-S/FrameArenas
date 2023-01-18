@@ -5,6 +5,7 @@
 #include "FrameGameState.h"
 #include "Net/UnrealNetwork.h"
 #include "FrameMultiplayer/PlayerState/FramePlayerState.h"
+#include "FrameMultiplayer/PlayerController/FramePlayerController.h"
 
 
 void AFrameGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const 
@@ -35,12 +36,42 @@ void AFrameGameState::UpdateTopScore(class AFramePlayerState* ScoringPlayer)
     }
 }
 
+void AFrameGameState::RedTeamScored()
+{
+    ++RedTeamScore;
+
+    AFramePlayerController* FPlayer = Cast<AFramePlayerController>(GetWorld()->GetFirstPlayerController());
+    if (FPlayer)
+    {
+        FPlayer->SetHUDRedTeamScore(RedTeamScore);
+    }
+}
+
+void AFrameGameState::BlueTeamScored()
+{
+    ++BlueTeamScore;
+
+    AFramePlayerController* FPlayer = Cast<AFramePlayerController>(GetWorld()->GetFirstPlayerController());
+    if (FPlayer)
+    {
+        FPlayer->SetHUDBlueTeamScore(BlueTeamScore);
+    }
+}
+
 void AFrameGameState::OnRep_RedTeamScore()
 {
-    
+    AFramePlayerController* FPlayer = Cast<AFramePlayerController>(GetWorld()->GetFirstPlayerController());
+    if (FPlayer)
+    {
+        FPlayer->SetHUDRedTeamScore(RedTeamScore);
+    }
 }
 
 void AFrameGameState::OnRep_BlueTeamScore()
 {
-    
+    AFramePlayerController* FPlayer = Cast<AFramePlayerController>(GetWorld()->GetFirstPlayerController());
+    if (FPlayer)
+    {
+        FPlayer->SetHUDBlueTeamScore(BlueTeamScore);
+    }
 }

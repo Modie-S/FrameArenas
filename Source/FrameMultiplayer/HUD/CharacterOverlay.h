@@ -32,6 +32,12 @@ public:
 	UTextBlock* ScoreAmount;
 
 	UPROPERTY(meta = (BindWidget))
+	UTextBlock* RedTeamScore;
+
+	UPROPERTY(meta = (BindWidget))
+	UTextBlock* BlueTeamScore;
+
+	UPROPERTY(meta = (BindWidget))
 	UTextBlock* ElimsAmount;
 
 	UPROPERTY(meta = (BindWidget))
@@ -54,4 +60,6 @@ public:
 
 	UPROPERTY(meta = (BindWidgetAnim), Transient) // Animation set at runtime
 	UWidgetAnimation* HighPingWarning;
+
+
 };

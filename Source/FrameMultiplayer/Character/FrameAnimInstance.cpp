@@ -39,6 +39,7 @@ void UFrameAnimInstance::NativeUpdateAnimation(float DeltaTime)
     bIsCrouched = FrameCharacter->bIsCrouched;
     bAiming = FrameCharacter->IsAiming();
     bElimmed = FrameCharacter->IsElimmed();
+    bHoldingFlag = FrameCharacter->IsHoldingFlag();
    
 
     FRotator AimRotation = FrameCharacter->GetBaseAimRotation();

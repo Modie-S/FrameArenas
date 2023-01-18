@@ -265,6 +265,8 @@ private:
 
 	void UpdateHUDGrenades();
 
+	bool bHoldingFlag = false;
+
 public:	
 	
 	FORCEINLINE int32 GetGrenades() const { return Grenades; }

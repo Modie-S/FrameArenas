@@ -17,6 +17,7 @@
 #include "FrameMultiplayer/PlayerState/FramePlayerState.h"
 #include "Components/Image.h"
 #include "FrameMultiplayer/HUD/ReturnToMainMenu.h"
+#include "FrameMultiplayer/Types/Announcements.h"
 
 
 void AFramePlayerController::BeginPlay()
@@ -623,7 +624,7 @@ void AFramePlayerController::HandleCooldown()
             if (bHUDValid)
             {
                 FrameHUD->Announcement->SetVisibility(ESlateVisibility::Visible);
-                FString AnnouncementText("Next Round Starts In:");
+                FString AnnouncementText = Announcement::NewMatchStart;
                 FrameHUD->Announcement->AnnouncementText->SetText(FText::FromString(AnnouncementText));
 
                 AFrameGameState* FrameGameState = Cast<AFrameGameState>(UGameplayStatics::GetGameState(this));
@@ -631,33 +632,11 @@ void AFramePlayerController::HandleCooldown()
                 if (FrameGameState && FramePlayerState)
                 {
                     TArray<AFramePlayerState*> TopPlayers = FrameGameState->TopScoringPlayers;
-                    FString InfoTextString;
-                    if (TopPlayers.Num() == 0)
-                    {
-                        InfoTextString = FString("No Winners Here...");
-                    }
-                    else if (TopPlayers.Num() == 1 && TopPlayers[0] == FramePlayerState)
-                    {
-                        InfoTextString = FString("You Are The Winner!");
-                    }
-                    else if (TopPlayers.Num() == 1)
-                    {
-                        InfoTextString = FString::Printf(TEXT("Winner: \n%s"), *TopPlayers[0]->GetPlayerName());
-                    }
-                    else if (TopPlayers.Num() > 1)
-                    {
-                        InfoTextString = FString("Players Tied For The Win:\n");
-                        for (auto TiedPlayer : TopPlayers)
-                        {
-                            InfoTextString.Append(FString::Printf(TEXT("%s\n"), *TiedPlayer->GetPlayerName()));
-                        }
-                    }
-
+                    FString InfoTextString = bShowTeamScores ? GetTeamInfoText(FrameGameState) : GetInfoText(TopPlayers);
+                    
 
                     FrameHUD->Announcement->InfoText->SetText(FText::FromString(InfoTextString));
                 }
-
-               
             }
         }
         AFrameCharacter* FrameCharacter = Cast<AFrameCharacter>(GetPawn());
@@ -666,6 +645,74 @@ void AFramePlayerController::HandleCooldown()
             FrameCharacter->bDisableGameplay = true;
             FrameCharacter->GetCombat()->FireButtonPressed(false);
         }
+}
+
+FString AFramePlayerController::GetInfoText(const TArray<class AFramePlayerState*>& Players)
+{
+    AFramePlayerState* FramePlayerState = GetPlayerState<AFramePlayerState>();
+    if (FramePlayerState == nullptr) return FString();
+    FString InfoTextString;
+    if (Players.Num() == 0)
+    {
+        InfoTextString = Announcement::NoWinner;
+    }
+    else if (Players.Num() == 1 && Players[0] == FramePlayerState)
+    {
+        InfoTextString = Announcement::Winner;
+    }
+    else if (Players.Num() == 1)
+    {
+        InfoTextString = FString::Printf(TEXT("Winner: \n%s"), *Players[0]->GetPlayerName());
+    }
+    else if (Players.Num() > 1)
+    {
+        InfoTextString = Announcement::Draw;
+        InfoTextString.Append(FString("\n"));
+        for (auto TiedPlayer : Players)
+        {
+            InfoTextString.Append(FString::Printf(TEXT("%s\n"), *TiedPlayer->GetPlayerName()));
+        }
+    }
+    return InfoTextString;
+}
+
+FString AFramePlayerController::GetTeamInfoText(class AFrameGameState* FrameGameState)
+{
+    if (FrameGameState == nullptr) return FString();
+    FString InfoTextString;
+
+    const int32 RedTeamScore = FrameGameState->RedTeamScore;
+    const int32 BlueTeamScore = FrameGameState->BlueTeamScore;
+
+    if (RedTeamScore == 0 && BlueTeamScore == 0)
+    {
+        InfoTextString = Announcement::NoWinner;
+    }
+    else if (RedTeamScore == BlueTeamScore)
+    {
+        InfoTextString = FString::Printf(TEXT("%s\n"), *Announcement::TeamDraw);
+        InfoTextString.Append(Announcement::RedTeam);
+        InfoTextString.Append(TEXT("\n"));
+        InfoTextString.Append(Announcement::BlueTeam);
+        InfoTextString.Append(TEXT("\n"));
+    }
+    else if (RedTeamScore > BlueTeamScore)
+    {
+        InfoTextString = Announcement::RedTeamWin;
+        InfoTextString.Append(TEXT("\n"));
+        InfoTextString.Append(FString::Printf(TEXT("%s: %d\n"), *Announcement::RedTeam, RedTeamScore));
+        InfoTextString.Append(FString::Printf(TEXT("%s: %d\n"), *Announcement::BlueTeam, BlueTeamScore));
+    }
+    else if (BlueTeamScore > RedTeamScore)
+    {
+        InfoTextString = Announcement::BlueTeamWin;
+        InfoTextString.Append(TEXT("\n"));
+        InfoTextString.Append(FString::Printf(TEXT("%s: %d\n"), *Announcement::BlueTeam, BlueTeamScore)); 
+        InfoTextString.Append(FString::Printf(TEXT("%s: %d\n"), *Announcement::RedTeam, RedTeamScore));
+    }
+
+    return InfoTextString;
+
 }
 
 void AFramePlayerController::BroadcastElimination(APlayerState* Attacker, APlayerState* Victim)

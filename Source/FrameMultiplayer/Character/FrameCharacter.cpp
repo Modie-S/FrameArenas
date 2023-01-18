@@ -851,3 +851,9 @@ bool AFrameCharacter::IsLocallyReloading()
 	if (Combat == nullptr) return false;
 	return Combat->bLocallyReloading;
 }
+
+bool AFrameCharacter::IsHoldingFlag() const
+{
+	if (Combat == nullptr) return false;
+	return Combat->bHoldingFlag;
+}

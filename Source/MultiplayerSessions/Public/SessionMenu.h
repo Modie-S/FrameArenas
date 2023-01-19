@@ -29,6 +29,7 @@ protected:
 	//
 	// Callbacks for custom delegates on MPSessionsSubsystem
 	//
+	
 	UFUNCTION() // As this is a dynamic multicast delegate callback, must be UFUNCTION() - NON-DYNAMIC DO NOT NEED UFUNCTION MACRO
 	void OnCreateSession(bool bWasSuccessful);
 	void OnFindSessions(const TArray<FOnlineSessionSearchResult>& SessionResults, bool bWasSuccessful);
@@ -57,8 +58,12 @@ private:
 	// The subsystem designed to handle all online session functionality
 	class UMPSessionsSubsystem* MultiplayerSessionsSubsystem;
 
+	UPROPERTY(BlueprintReadWrite, meta = (AllowPrivateAccess = "true"))
 	int32 NumPublicConnections{4};
+	
+	UPROPERTY(BlueprintReadWrite, meta = (AllowPrivateAccess = "true"))
 	FString MatchType{TEXT("FreeForAll")};
+	
 	FString PathToLobby{TEXT("")};
 
 };

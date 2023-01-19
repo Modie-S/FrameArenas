@@ -24,7 +24,9 @@ UMPSessionsSubsystem::UMPSessionsSubsystem() :
 
 void UMPSessionsSubsystem::CreateSession(int32 NumPublicConnections, FString MatchType)
 {
-	if (!SessionInterface.IsValid())
+	RequiredNumPublicConnections = NumPublicConnections;
+    ChosenMatchType = MatchType;
+    if (!SessionInterface.IsValid())
     {
         return;
     }

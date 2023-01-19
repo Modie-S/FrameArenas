@@ -48,6 +48,9 @@ public:
 	FMultiplayerOnJoinSessionComplete MultiplayerOnJoinSessionComplete;
 	FMultiplayerOnDestroySessionComplete MultiplayerOnDestroySessionComplete;
 	FMultiplayerOnStartSessionComplete MultiplayerOnStartSessionComplete;
+	
+	int32 RequiredNumPublicConnections{};
+	FString ChosenMatchType{};
 
 protected:
 
@@ -91,6 +94,8 @@ private:
 	bool bCreateSessionOnDestroy { false };
 	int32 LastNumPublicConnections;
 	FString LastMatchType;
+
+	
 
 };
 

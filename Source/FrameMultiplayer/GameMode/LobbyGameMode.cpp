@@ -4,6 +4,7 @@
 
 #include "LobbyGameMode.h"
 #include "GameFramework/GameStateBase.h"
+#include "MPSessionsSubsystem.h"
 
 
 void ALobbyGameMode::PostLogin(APlayerController* NewPlayer)
@@ -11,13 +12,39 @@ void ALobbyGameMode::PostLogin(APlayerController* NewPlayer)
     Super::PostLogin(NewPlayer);
 
     int32 NumberOfPlayers = GameState.Get()->PlayerArray.Num();
-    if (NumberOfPlayers == 2)
+
+    UGameInstance* GameInstance = GetGameInstance();
+    if (GameInstance)
     {
-        UWorld* World = GetWorld();
-        if (World)
+        UMPSessionsSubsystem* Subsystem = GameInstance->GetSubsystem<UMPSessionsSubsystem>();
+        check(Subsystem);
+
+        if (NumberOfPlayers == Subsystem->RequiredNumPublicConnections)
         {
-            bUseSeamlessTravel = true;
-            World->ServerTravel(FString("/Game/Maps/SciFiBaseMAIN?listen")); 
+            UWorld* World = GetWorld();
+            if (World)
+            {
+                bUseSeamlessTravel = true;
+
+                FString MatchType = Subsystem->ChosenMatchType;
+                if (MatchType == "FreeForAll")
+                {
+                    World->ServerTravel(FString("/Game/Maps/FreeForAllMAIN?listen")); 
+                }
+                else if (MatchType == "Teams")
+                {
+                    World->ServerTravel(FString("/Game/Maps/TDMMAIN?listen"));
+                }
+                else if (MatchType == "CaptureTheFlag")
+                {
+                    World->ServerTravel(FString("/Game/Maps/CTFMAIN?listen"));
+                }
+
+                
+            }
         }
+
     }
+
+   
 }

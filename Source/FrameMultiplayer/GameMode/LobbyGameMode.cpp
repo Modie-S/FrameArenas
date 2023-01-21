@@ -33,11 +33,11 @@ void ALobbyGameMode::PostLogin(APlayerController* NewPlayer)
                 }
                 else if (MatchType == "Teams")
                 {
-                    World->ServerTravel(FString("/Game/Maps/TDMMAIN?listen"));
+                    World->ServerTravel(FString("/Game/Maps/TDMMain?listen"));
                 }
                 else if (MatchType == "CaptureTheFlag")
                 {
-                    World->ServerTravel(FString("/Game/Maps/CTFMAIN?listen"));
+                    World->ServerTravel(FString("/Game/Maps/CTFMain?listen"));
                 }
 
                 
